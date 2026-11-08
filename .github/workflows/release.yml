@@ -118,6 +118,8 @@ jobs:
 
       - run: make pull-release-module
         env:
+          # GitHub can refuse anonymous release downloads; the job's read-only token authenticates them.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # On a manual run github.ref_name is the branch: every script reads the tag from here.
           GITHUB_REF_NAME: ${{ inputs.tag || github.ref_name }}
           INPUT_TAG: ${{ inputs.tag }}

@@ -16,6 +16,7 @@ set -o errexit
 set -o pipefail
 
 declare -r DIST='dist'
+declare -ra CURL_OPTS=(--silent --show-error --fail --location --connect-timeout 30 --retry 3)
 
 function main() {
   exec 5>&1
@@ -56,10 +57,17 @@ function module_path() {
   awk '$1 == "module" { print $2; exit }' go.mod
 }
 
+# fetch URL OUT: with GITHUB_TOKEN set the request is authenticated, which GitHub can require of release downloads
+# that it refuses anonymously. The token reaches curl on stdin (-H @-), never on its command line; curl does not
+# forward it when a redirect leaves the host.
 function fetch() {
   local -r url="${1}" out="${2}"
   log "⬇️  ${url}"
-  curl --silent --show-error --fail --location --connect-timeout 30 --retry 3 -o "${out}" "${url}"
+  if [ -z "${GITHUB_TOKEN:-}" ]; then
+    curl "${CURL_OPTS[@]}" -o "${out}" "${url}"
+    return 0
+  fi
+  printf 'Authorization: Bearer %s\n' "${GITHUB_TOKEN}" | curl "${CURL_OPTS[@]}" -H @- -o "${out}" "${url}"
 }
 
 # module_zip TAG: the zip SHA256SUMS lists for TAG.

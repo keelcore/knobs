@@ -14,6 +14,9 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Fixed
 
+- The release's attest job downloads the module zip with the job's read-only token (`GITHUB_TOKEN`, passed to curl on
+  stdin): GitHub answered anonymous release downloads with HTTP 504 while serving authenticated ones, so v0.8.1's
+  attestation failed.
 - Unit (linux) checks the tree before the Codecov uploader downloads itself into it; the native suites run `bats` and the
   harness from `target/native/<os>-<arch>/` by path, not from `PATH`, whose Windows entries (`D:/...`) split at the
   drive colon.

@@ -16,9 +16,11 @@ setup() {
   printf 'module zip\n' > "${SERVED}/lib-v1.2.3.zip"
   (cd "${SERVED}" && sha256sum lib-v1.2.3.zip > SHA256SUMS && printf 'abc  other.txt\n' >> SHA256SUMS)
   cp "${ROOT}/tests/fixtures/stub-curl.sh" "${WORK}/bin/curl"
-  export STUB_CALLS="${CALLS}" STUB_SERVED="${SERVED}"
+  HEADERS="${BATS_TEST_TMPDIR}/headers"
+  : > "${HEADERS}"
+  export STUB_CALLS="${CALLS}" STUB_SERVED="${SERVED}" STUB_HEADERS="${HEADERS}"
   export PATH="${WORK}/bin:${PATH}"
-  unset GITHUB_REF_NAME INPUT_TAG
+  unset GITHUB_REF_NAME INPUT_TAG GITHUB_TOKEN
   cd "${WORK}"
 }
 
@@ -52,4 +54,17 @@ setup() {
   GITHUB_REF_NAME=main INPUT_TAG=v1.2.3 run bash "${SCRIPT}"
   [ "${status}" -eq 0 ]
   grep -qx 'https://github.com/example/lib/releases/download/v1.2.3/lib-v1.2.3.zip' "${CALLS}"
+}
+
+@test "pull-release-module: with GITHUB_TOKEN every download is authenticated" {
+  GITHUB_TOKEN=t0ken GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
+  [ "${status}" -eq 0 ]
+  [ "$(grep -cx 'Authorization: Bearer t0ken' "${HEADERS}")" -eq 2 ]
+  [[ "${output}" != *t0ken* ]] || false
+}
+
+@test "pull-release-module: without GITHUB_TOKEN no download carries credentials" {
+  GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
+  [ "${status}" -eq 0 ]
+  ! grep -q '^Authorization' "${HEADERS}" || false
 }
