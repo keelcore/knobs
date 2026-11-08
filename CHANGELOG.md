@@ -12,6 +12,16 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ## [Unreleased]
 
+### Fixed
+
+- CI passes `PR_AUTHOR` to the PR policy check (its Dependabot exemption) and `HEAD_SHA` to the coverage delta gate.
+- Dependabot leaves the canonical workflows (`scorecard.yml`, `codeql.yml`) alone: their pins come with the
+  `.standards` release. It covers the Go module and its vendor tree.
+- Dependabot writes nothing to `main`: version updates open their pull requests against `deps-inbox`, security
+  update pull requests are off and the alerts stay on; `make update-pins` takes both as candidates
+  (`docs/governance.md`, Dependency updates).
+- Dependabot waits 14 days after a release before proposing it, the cooldown `update-pins` applies.
+
 ### Added
 
 - Repository bootstrapped to keelcore standards (`.standards` v0.10.24): canonical `Makefile`, scripts, pre-commit

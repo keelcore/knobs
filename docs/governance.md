@@ -26,6 +26,28 @@ Every tool runs in the dev image (`containers/dev/Containerfile`, built `FROM` t
 needs `make`, `bash`, `git` and a container runtime. The pre-commit hook writes `containers/dev/image.ref`, naming
 the image built from each commit.
 
+## Dependency updates
+
+Pins change only through `make update-pins`: it discovers every pin, takes the newest eligible release of each (no
+prereleases, a 14-day cooldown), verifies each stale pin alone in a scratch worktree, then all together, and with
+`APPLY=1` writes the passing pins for review and commit. `make create-release` refuses to tag while any pin is stale.
+
+Dependabot is one of its inputs and writes nothing to `main`:
+
+- Version updates open their pull requests against `deps-inbox` (`target-branch` in `.github/dependabot.yml`), a
+  branch nothing is merged from. `update-pins` reads every open Dependabot pull request as a candidate and names it
+  in its report.
+  They wait out the same 14-day cooldown, so Dependabot proposes only releases `update-pins` would take.
+- Security updates open no pull requests (turned off in the repository settings). Dependabot alerts stay on;
+  `update-pins` reads each open alert's patched version as a candidate, so an alert makes its pin stale and holds the
+  release until the pin moves.
+- The canonical workflows (`scorecard.yml`, `codeql.yml`) are excluded: their pins arrive with the `.standards`
+  release.
+
+This departs from `.standards/governance/devsecops.md`, Repository Controls 5, which asks for Dependabot security
+updates to be on: a known vulnerability reaches the release gate through its alert and `update-pins` instead of
+through a pull request.
+
 ## Branch protection
 
 Rulesets are code: `.github/rulesets/*.json` holds the branch and tag rulesets, `make check-rulesets` compares them

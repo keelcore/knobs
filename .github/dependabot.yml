@@ -1,9 +1,24 @@
 version: 2
 
+# Dependabot is an input to `make update-pins`, never a writer of main. Every version update
+# opens its pull request against deps-inbox, a branch nothing is merged from; update-pins reads
+# the open pull requests and the open alerts as candidates, verifies each one, and writes only
+# the pins that pass, for review and commit (docs/governance.md, Dependency updates). Security
+# update pull requests are turned off in the repository settings; the alerts stay on. The cooldown
+# matches update-pins' (governance/ci.md, Pin Refresh): no proposal for a release under 14 days old.
+
 updates:
-  # Keep GitHub Actions SHA pins current.
+  # GitHub Actions SHA pins.
   - package-ecosystem: github-actions
     directory: /
+    target-branch: deps-inbox
+    cooldown:
+      default-days: 14
+    # scorecard.yml and codeql.yml are canonical copies of .standards (scripts/lib/canonical-files.sh):
+    # their pins arrive with the .standards release.
+    exclude-paths:
+      - .github/workflows/scorecard.yml
+      - .github/workflows/codeql.yml
     schedule:
       interval: weekly
       day: monday
@@ -13,10 +28,29 @@ updates:
     commit-message:
       prefix: "ci(deps)"
 
-  # Keep the digest-pinned dev image base current.
+  # Go module dependencies; vendor/ is committed, so the proposal includes it.
+  - package-ecosystem: gomod
+    directory: /
+    target-branch: deps-inbox
+    cooldown:
+      default-days: 14
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - go
+    commit-message:
+      prefix: "chore(deps)"
+    vendor: true
+
+  # The digest-pinned dev image base.
   - package-ecosystem: docker
     directories:
       - /containers/dev
+    target-branch: deps-inbox
+    cooldown:
+      default-days: 14
     schedule:
       interval: weekly
       day: monday
@@ -26,9 +60,12 @@ updates:
     commit-message:
       prefix: "chore(deps)"
 
-  # Keep the .standards submodule pointer current.
+  # The .standards submodule pointer.
   - package-ecosystem: gitsubmodule
     directory: /
+    target-branch: deps-inbox
+    cooldown:
+      default-days: 14
     schedule:
       interval: weekly
       day: monday
