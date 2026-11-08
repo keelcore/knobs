@@ -14,6 +14,8 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Fixed
 
+- A native build records the module root package's directory as `.` (`build-native.local.sh`): the canonical
+  `build-native.sh` keeps the dev image's absolute path for it.
 - Every release job reads the tag from `inputs.tag` on a manual run (`GITHUB_REF_NAME` there is the branch), so
   the canonical `wait-for-publish.sh` waits for the tag.
 - A manual release run takes its tag from `INPUT_TAG`; its `GITHUB_REF_NAME` is the branch.
@@ -27,6 +29,11 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- macOS and Windows CI, as keel runs it: the dev image cross-builds the Go test binaries, bats and
+  `knobs-conform` (`make build-native`, with knobs' `build-native.local.sh`); the native runners run the unit tests
+  (`make test-native`), the conformance suite on macOS and a harness smoke test on Windows
+  (`make test-native-integrity`, `test-native-integrity.local.sh`). `tests/integrity.bats` takes the harness from
+  `KNOBS_CONFORM`.
 - `x-knobs-owner`: a module schema names the code module that defines it; the master schema adds
   `x-knobs-owner-version` from the binary's build information, and errors on the module's keys name `owner@version`.
 - `knobstest`: `Schema` fails a test when the committed master schema differs from the one the code builds

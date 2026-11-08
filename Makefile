@@ -83,3 +83,15 @@ publish-go-module:
 pull-release-module:
 	@echo "⬇️  Fetching the release's module zip..."
 	bash scripts/dev/run.sh bash scripts/release/pull-release-module.sh
+
+.PHONY: build-native-local
+.PHONY: test-native-integrity-local
+
+## knobs' part of the canonical native targets: run by them, and runnable alone.
+build-native-local:
+	@echo "🔨 Building knobs-conform for $(OS)/$(ARCH)..."
+	bash scripts/dev/run.sh bash scripts/test/build-native.local.sh $(OS) $(ARCH) target/native/$(OS)-$(ARCH) $(EXT)
+
+test-native-integrity-local:
+	@echo "🧪 Running the conformance and integrity suites against the native harness..."
+	bash scripts/test/test-native-integrity.local.sh

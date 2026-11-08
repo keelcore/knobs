@@ -261,6 +261,129 @@ jobs:
       - run: make check-clean-tree
 
   # ---------------------------------------------------------------------------
+  # Native platforms — the dev image cross-builds everything a macOS or Windows
+  # host runs (the Go test binaries, bats, the conformance harness); the native
+  # jobs only execute it. No toolchain is installed on the native runners.
+  # ---------------------------------------------------------------------------
+  native-build:
+    name: Native build (${{ matrix.platform }})
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            os: darwin
+            arch: arm64
+          - platform: windows
+            os: windows
+            arch: amd64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Cross-build native test binaries and the conformance harness
+        env:
+          OS: ${{ matrix.os }}
+          ARCH: ${{ matrix.arch }}
+        run: make build-native
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: native-${{ matrix.platform }}
+          path: target/native/
+          retention-days: 1
+      - run: make check-clean-tree
+
+  unit-native:
+    name: Unit (${{ matrix.platform }})
+    needs: native-build
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            runner: macos-26
+            dir: target/native/darwin-arm64
+          - platform: windows
+            runner: windows-2025-vs2026
+            dir: target/native/windows-amd64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: native-${{ matrix.platform }}
+          path: target/native/
+      - name: Run native unit tests
+        shell: bash
+        env:
+          DIR: ${{ matrix.dir }}
+        run: make test-native
+
+  # ---------------------------------------------------------------------------
+  # Integrity (macOS) — the conformance suite and the harness integrity checks
+  # against the darwin/arm64 harness the dev image cross-built.
+  # ---------------------------------------------------------------------------
+  integrity-macos:
+    name: Integrity (BATS, macOS)
+    needs: native-build
+    runs-on: macos-26
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: native-macos
+          path: target/native/
+      - name: Run the conformance and integrity suites (darwin harness from the dev image)
+        env:
+          DIR: target/native/darwin-arm64
+        run: make test-native-integrity
+
+  # ---------------------------------------------------------------------------
+  # Windows Smoke — the harness integrity checks against the windows/amd64
+  # harness: it starts, and rejects bad invocations cleanly.
+  # ---------------------------------------------------------------------------
+  build-windows-smoke:
+    name: Windows Smoke
+    needs: native-build
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: native-windows
+          path: target/native/
+      - name: Smoke test (windows harness from the dev image)
+        shell: bash
+        env:
+          DIR: target/native/windows-amd64
+        run: make test-native-integrity
+
+  # ---------------------------------------------------------------------------
   # Integration — the BATS suites, including the conformance suite run against
   # every implementation's harness.
   # ---------------------------------------------------------------------------

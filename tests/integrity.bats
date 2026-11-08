@@ -1,12 +1,12 @@
 #!/usr/bin/env bats
 # tests/integrity.bats
-# Integrity of the built conformance harness (target/conform/knobs-conform-go): it rejects bad
-# invocations with the error object and exit status 2, never with a crash.
+# Integrity of the built conformance harness (KNOBS_CONFORM, default target/conform/knobs-conform-go): it
+# rejects bad invocations with the error object and exit status 2, never with a crash.
 # Per .standards/governance/testing.md: integrity tests run against the BUILT artifact.
 
 setup() {
   REPO_ROOT="$(cd "${BATS_TEST_DIRNAME}" && git rev-parse --show-toplevel)"
-  BIN="${REPO_ROOT}/target/conform/knobs-conform-go"
+  BIN="${KNOBS_CONFORM:-${REPO_ROOT}/target/conform/knobs-conform-go}"
   if [ ! -x "${BIN}" ]; then
     skip "Built artifact not found at ${BIN}; build first (make build-conform)"
   fi

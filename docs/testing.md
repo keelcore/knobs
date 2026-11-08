@@ -10,6 +10,7 @@ lists knobs' suites.
 | Integration | `make test-integration` | the conformance suite against the built harness, then every other BATS suite |
 | Fuzz | `make test-fuzz` | text conversion, file layers, connection values |
 | Types | `make check-schema-types` | the Go bindings' types against the test schemas |
+| Native | `make build-native`, `make test-native`, `make test-native-integrity` | the unit tests on macOS and Windows; the conformance suite on macOS; a harness smoke test on Windows |
 
 ## Unit tests
 
@@ -31,4 +32,6 @@ lists knobs' suites.
 | `tests/pull-release-module.bats` | the release module fetch and checksum check, with a stubbed `curl` |
 | `tests/canonical/smoke.bats` | the harness itself |
 
-Every target runs in the dev image (`scripts/dev/run.sh`).
+Every target runs in the dev image (`scripts/dev/run.sh`). The native jobs run on macOS and Windows runners what
+the dev image cross-built (`target/native/<os>-<arch>/`: the Go test binaries, bats, `knobs-conform`); the runners
+install nothing.
