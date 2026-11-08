@@ -1,0 +1,59 @@
+{
+  "description": "A number outside its bounds is set to the nearer bound.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--connection",
+    "demo.http.ratio=1.5",
+    "--connection",
+    "demo.http.port=0",
+    "--authorized"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 1,
+        "layer": "connection",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 1,
+        "layer": "connection",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "default",
+        "secret": false
+      }
+    },
+    "attempts": [
+      {
+        "key": "demo.http.port",
+        "outcome": "clamped"
+      },
+      {
+        "key": "demo.http.ratio",
+        "outcome": "clamped"
+      }
+    ]
+  }
+}

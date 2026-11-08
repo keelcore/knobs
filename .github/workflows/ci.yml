@@ -1,0 +1,323 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs for the same branch/PR.
+# Keep main-branch runs to completion so history is complete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# Default: least privilege. Jobs that need more declare it explicitly.
+permissions:
+  contents: read
+
+# Every make target runs its tools in the dev image (containers/dev/Containerfile, via
+# scripts/dev/run.sh and docker): no tool is installed on the runner.
+# Repositories are UTC internally (governance/devsecops.md): every step runs in UTC.
+env:
+  TZ: UTC
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # The tool image for this tree's build context, published once (skipped when it is
+  # already in GHCR); every tool job below pulls it instead of building it. Pull requests
+  # do not publish: their tool jobs pull a published context or build it in the runner.
+  # ---------------------------------------------------------------------------
+  dev-image:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/dev-image.yml
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+  # ---------------------------------------------------------------------------
+  # PR Policy — required gate; runs before build and test jobs.
+  # All policy logic lives in scripts/ci/check-pr-policy.sh.
+  # ---------------------------------------------------------------------------
+  pr-policy:
+    name: PR Policy
+    needs: dev-image
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+          fetch-depth: 0
+      - name: Check PR policy
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: make check-pr-policy
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # CI Audit — required gate; verifies all run: steps are make <target>, all
+  # scripts have targets, canonical scripts match .standards, and the live
+  # rulesets match .github/rulesets.
+  # ---------------------------------------------------------------------------
+  ci-audit:
+    name: CI Audit
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Run CI/Makefile audit
+        run: make audit
+      - name: Verify canonical scripts are byte-identical to .standards
+        run: make verify-canonical
+      - name: Check rulesets against .github/rulesets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: make check-rulesets
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # Secret Scan — required gate; runs on every push and PR.
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Secret Scan
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+          fetch-depth: 0
+      - name: Scan for secrets
+        run: make check-secrets
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # Lint — aggregates every language's formatter check and linter, markdownlint,
+  # shellcheck, trailing newlines and the suppression scan.
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Lint
+        run: make lint
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # Workflow Lint — actionlint and zizmor over .github/workflows.
+  # ---------------------------------------------------------------------------
+  workflow-lint:
+    name: Workflow Lint
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: actionlint + zizmor
+        env:
+          # zizmor online audits (impostor commits, pin/version drift, known-vulnerable actions).
+          GH_TOKEN: ${{ github.token }}
+        run: make lint-workflows
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # Security gates — dependency vulnerabilities (govulncheck), Go SAST (gosec, with the
+  # reviewed sites in config/gosec-sites.local.txt), a short fuzz pass over every native fuzz
+  # target, and the dependency license allowlist.
+  # ---------------------------------------------------------------------------
+  vuln:
+    name: Vulnerability Scan
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: govulncheck
+        run: make lint-vuln
+      - run: make check-clean-tree
+
+  gosec:
+    name: SAST (gosec)
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: gosec
+        run: make lint-gosec
+      - run: make check-clean-tree
+
+  fuzz:
+    name: Fuzz
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Fuzz (10s per target)
+        run: make test-fuzz
+      - run: make check-clean-tree
+
+  licenses:
+    name: Licenses
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: License allowlist
+        run: make lint-licenses
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # Unit Tests — every implementation's unit tests; JUnit XML and coverage.
+  # ---------------------------------------------------------------------------
+  unit:
+    name: Unit (linux)
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Unit tests
+        run: make test-unit
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # Integration — the BATS suites, including the conformance suite run against
+  # every implementation's harness.
+  # ---------------------------------------------------------------------------
+  integration:
+    name: Integration (BATS)
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: BATS suites
+        run: make test-integration
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # Coverage Delta — PR-only gate. Measures coverage at the merge-target commit
+  # (base), then at the PR head, and fails if the drop exceeds 1 percentage point.
+  # ---------------------------------------------------------------------------
+  coverage-delta:
+    name: Coverage Delta
+    needs: dev-image
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+          fetch-depth: 0
+      - name: Check coverage delta
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          COVERAGE_THRESHOLD: '1.0'
+        run: make check-coverage-delta
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # Coverage No-Regression — per-file gate against the committed baseline at
+  # tests/coverage-baseline.lcov, over every language's LCOV. Runs on push AND
+  # pull_request so direct pushes to main are gated too.
+  # ---------------------------------------------------------------------------
+  coverage-no-regression:
+    name: Coverage No-Regression
+    needs: dev-image
+    if: ${{ !cancelled() && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Generate coverage LCOV
+        run: make test-coverage
+      - name: Per-file no-regression gate
+        run: make check-coverage-regression
+      - run: make check-clean-tree

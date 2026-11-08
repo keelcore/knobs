@@ -1,0 +1,23 @@
+{
+  "description": "A key marked secret set on the command line fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--knob",
+    "demo.db.url=x",
+    "--knob",
+    "demo.db.password=hunter2"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "secret_on_cli",
+      "layer": "cli",
+      "key": "demo.db.password"
+    }
+  }
+}

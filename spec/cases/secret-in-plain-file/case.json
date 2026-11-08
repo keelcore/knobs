@@ -1,0 +1,21 @@
+{
+  "description": "A key marked secret set in the global or user file fails loading.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "secret_in_plain_file",
+      "layer": "global",
+      "key": "demo.db.password"
+    }
+  }
+}

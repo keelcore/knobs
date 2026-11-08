@@ -1,0 +1,17 @@
+{
+  "description": "A schema using a keyword outside the supported set fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/invalid/unsupported-keyword.json"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "schema_invalid",
+      "layer": "schema",
+      "key": "demo.bad.name"
+    }
+  }
+}

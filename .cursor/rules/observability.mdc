@@ -1,0 +1,6 @@
+---
+description: Observability standards — apply to all service and infrastructure work
+alwaysApply: true
+---
+
+@../../.standards/governance/observability.md

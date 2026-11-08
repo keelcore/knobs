@@ -1,0 +1,6 @@
+---
+description: API management standards — apply to all API design and implementation work
+alwaysApply: true
+---
+
+@../../.standards/governance/api-management.md

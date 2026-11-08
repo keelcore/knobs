@@ -1,0 +1,4 @@
+demo:
+  db:
+    url: x
+    password: hunter2

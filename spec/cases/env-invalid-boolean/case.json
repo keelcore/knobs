@@ -1,0 +1,19 @@
+{
+  "description": "Booleans are true or false only.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--env",
+    "DEMO_HTTP_DEBUG=yes"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_type",
+      "layer": "env",
+      "key": "demo.http.debug"
+    }
+  }
+}

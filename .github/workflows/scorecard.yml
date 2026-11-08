@@ -1,0 +1,43 @@
+name: Scorecard
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '41 4 * * 1'
+  branch_protection_rule:
+  workflow_dispatch:
+
+# Scorecard verifies its own workflow before publishing results: no workflow- or
+# job-level env, defaults, containers or services, and only the actions below.
+permissions: read-all
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # OpenSSF Scorecard — scores repository security practices (branch
+  # protection, pinned actions, SAST, signed releases, ...) and uploads the
+  # findings to code scanning. Guards the DevSecOps repository controls
+  # (rulesets, environment, secret scanning) against silent regression.
+  # ---------------------------------------------------------------------------
+  analysis:
+    name: Scorecard
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e  # v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370  # v4.39.1
+        with:
+          sarif_file: results.sarif

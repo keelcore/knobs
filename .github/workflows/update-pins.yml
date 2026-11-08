@@ -1,0 +1,48 @@
+name: update-pins
+
+# Manual: the full pin-refresh verification (`make update-pins`) on Linux, where
+# every pin kind can be exercised (release-asset tools install as pinned Linux
+# binaries here). Report and per-pin logs are uploaded; nothing is written back
+# to the repository.
+on:
+  workflow_dispatch:
+
+# One verification at a time per ref; a second dispatch waits for the first.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# Repositories are UTC internally (governance/devsecops.md): every step runs in UTC.
+env:
+  TZ: UTC
+
+jobs:
+  update-pins:
+    name: update-pins / verify
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          # A consumer's Makefile includes .standards/templates/Makefile.canonical from the submodule.
+          submodules: recursive
+
+      - name: verify every stale pin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATE_PINS_LOGDIR: target/update-pins/logs
+        run: make update-pins REPORT=target/update-pins/report.txt
+
+      - name: upload report and logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: update-pins
+          path: target/update-pins/
+          if-no-files-found: warn

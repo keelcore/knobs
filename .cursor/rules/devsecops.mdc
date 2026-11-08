@@ -1,0 +1,6 @@
+---
+description: DevSecOps standards — apply to repository settings, workflows, release scripts, and deployment artifacts
+alwaysApply: true
+---
+
+@../../.standards/governance/devsecops.md

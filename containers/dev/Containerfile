@@ -1,0 +1,14 @@
+# containers/dev/Containerfile
+# knobs dev image: the keelcore-standards dev image (Go, Node, shellcheck, bats,
+# markdownlint, staticcheck, gitleaks, syft, cosign, govulncheck) plus the build, lint
+# and test toolchains of knobs' other languages, each installed once at build time by its
+# pinned scripts/ci/setup-<tool>.sh. Every knobs make target that builds or runs a tool
+# runs in this image (scripts/dev/run.sh) on every host, with the repository mounted
+# read-only and its output directories (containers/writable) writable.
+# Build context: the repository root. BASE_DEV_IMAGE: the .standards dev image,
+# pinned by digest (scripts/dev/run.sh and scripts/dev/publish.sh pass it).
+
+ARG BASE_DEV_IMAGE
+FROM ${BASE_DEV_IMAGE}
+
+WORKDIR /work

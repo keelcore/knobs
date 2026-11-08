@@ -1,0 +1,18 @@
+{
+  "description": "A --knob argument without = fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--knob",
+    "demo.http.port"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_argument",
+      "layer": "cli"
+    }
+  }
+}

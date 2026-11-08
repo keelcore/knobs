@@ -1,0 +1,52 @@
+{
+  "description": "Without authorization no connection override applies.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--connection",
+    "demo.http.port=9000"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 8080,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "default",
+        "secret": false
+      }
+    },
+    "attempts": [
+      {
+        "key": "demo.http.port",
+        "outcome": "rejected_unauthorized"
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "description": "env overrides the files; text converts to the property type.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--user",
+    "user.yaml",
+    "--env",
+    "DEMO_HTTP_PORT=8081",
+    "--env",
+    "DEMO_HTTP_RATIO=0.25",
+    "--env",
+    "DEMO_HTTP_DEBUG=true"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 8081,
+        "layer": "env",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.25,
+        "layer": "env",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": true,
+        "layer": "env",
+        "secret": false
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "description": "A file that is not valid YAML fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--user",
+    "user.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "file_parse",
+      "layer": "user"
+    }
+  }
+}

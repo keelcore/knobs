@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelcore/knobs/spec/schema/http.json",
+  "title": "http",
+  "description": "Test schema: one knob of every type, connection overrides, bounds, enum and duration.",
+  "x-knobs-module": "http",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "port": {
+      "type": "integer",
+      "description": "Listen port.",
+      "default": 8080,
+      "minimum": 1,
+      "maximum": 65535,
+      "x-knobs-connection": true
+    },
+    "host": {
+      "type": "string",
+      "description": "Listen address.",
+      "default": "127.0.0.1",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "read_timeout": {
+      "type": "string",
+      "x-knobs-type": "duration",
+      "description": "Read timeout.",
+      "default": "5s",
+      "x-knobs-connection": true
+    },
+    "mode": {
+      "type": "string",
+      "description": "Serving mode.",
+      "default": "strict",
+      "enum": [
+        "strict",
+        "lenient"
+      ],
+      "x-knobs-connection": true
+    },
+    "ratio": {
+      "type": "number",
+      "description": "Sampling ratio.",
+      "default": 0.5,
+      "minimum": 0,
+      "maximum": 1,
+      "x-knobs-connection": true
+    },
+    "debug": {
+      "type": "boolean",
+      "description": "Debug logging.",
+      "default": false
+    }
+  }
+}

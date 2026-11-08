@@ -1,0 +1,6 @@
+---
+description: Runtime and orchestration standards — apply to all container and deployment work
+alwaysApply: true
+---
+
+@../../.standards/governance/runtime.md

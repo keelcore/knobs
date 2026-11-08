@@ -1,0 +1,17 @@
+{
+  "description": "A secret with a default fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/invalid/secret-default.json"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "schema_invalid",
+      "layer": "schema",
+      "key": "demo.bad.token"
+    }
+  }
+}

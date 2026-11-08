@@ -1,0 +1,19 @@
+{
+  "description": "A duration must use duration syntax.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--knob",
+    "demo.http.read_timeout=5 seconds"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_type",
+      "layer": "cli",
+      "key": "demo.http.read_timeout"
+    }
+  }
+}

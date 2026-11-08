@@ -1,0 +1,46 @@
+{
+  "description": "The global file overrides defaults; YAML types are kept.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 9000,
+        "layer": "global",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": true,
+        "layer": "global",
+        "secret": false
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "description": "Two schemas for one module fail.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/invalid/http-again.json"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "module_conflict",
+      "layer": "schema",
+      "key": "demo.http"
+    }
+  }
+}

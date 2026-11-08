@@ -1,0 +1,19 @@
+{
+  "description": "A file value of the wrong YAML type fails: a quoted number is a string.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_type",
+      "layer": "global",
+      "key": "demo.http.port"
+    }
+  }
+}

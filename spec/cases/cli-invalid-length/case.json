@@ -1,0 +1,19 @@
+{
+  "description": "A string outside minLength or maxLength fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--knob",
+    "demo.http.host="
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_length",
+      "layer": "cli",
+      "key": "demo.http.host"
+    }
+  }
+}

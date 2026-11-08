@@ -1,0 +1,32 @@
+# CODEOWNERS
+# Changes to protected paths require review from the designated owner before merge. Author
+# self-approval is not permitted for these paths.
+#
+# Owners must resolve to users or teams with repository access; an owner that does not resolve
+# makes the ruleset's code-owner review unsatisfiable.
+
+# Global fallback — all files not matched by a later rule.
+*                                       @PaulCharlton
+
+# Workflow files: any change here can exfiltrate secrets or alter CI policy.
+.github/                                @PaulCharlton
+.github/workflows/                      @PaulCharlton
+
+# Build and release scripts: changes alter what ships and how.
+scripts/                                @PaulCharlton
+scripts/release/                        @PaulCharlton
+containers/                             @PaulCharlton
+
+# The shared contract: schemas and conformance cases every implementation is tested against.
+spec/                                   @PaulCharlton
+
+# Dependency manifests and lock files of every language: changes alter the supply chain.
+go.mod                                  @PaulCharlton
+go.sum                                  @PaulCharlton
+rust/Cargo.toml                         @PaulCharlton
+rust/Cargo.lock                         @PaulCharlton
+ts/package.json                         @PaulCharlton
+ts/package-lock.json                    @PaulCharlton
+python/pyproject.toml                   @PaulCharlton
+python/requirements*.txt                @PaulCharlton
+c/CMakeLists.txt                        @PaulCharlton

@@ -1,0 +1,19 @@
+{
+  "description": "An unknown key on the command line fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--knob",
+    "demo.http.prot=1"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "unknown_key",
+      "layer": "cli",
+      "key": "demo.http.prot"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+---
+description: Platform architecture standards — apply to all infrastructure and platform work
+alwaysApply: true
+---
+
+@../../.standards/governance/platform.md

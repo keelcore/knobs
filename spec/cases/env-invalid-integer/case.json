@@ -1,0 +1,19 @@
+{
+  "description": "env text that is not an integer fails for an integer key.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--env",
+    "DEMO_HTTP_PORT=80a"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_type",
+      "layer": "env",
+      "key": "demo.http.port"
+    }
+  }
+}

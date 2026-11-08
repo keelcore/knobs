@@ -1,0 +1,108 @@
+{
+  "description": "print-schema writes the master schema: the application object with one property per module.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json"
+  ],
+  "command": "print-schema",
+  "expect": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "demo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "http": {
+            "title": "http",
+            "description": "Test schema: one knob of every type, connection overrides, bounds, enum and duration.",
+            "x-knobs-module": "http",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "port": {
+                "type": "integer",
+                "description": "Listen port.",
+                "default": 8080,
+                "minimum": 1,
+                "maximum": 65535,
+                "x-knobs-connection": true
+              },
+              "host": {
+                "type": "string",
+                "description": "Listen address.",
+                "default": "127.0.0.1",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "read_timeout": {
+                "type": "string",
+                "x-knobs-type": "duration",
+                "description": "Read timeout.",
+                "default": "5s",
+                "x-knobs-connection": true
+              },
+              "mode": {
+                "type": "string",
+                "description": "Serving mode.",
+                "default": "strict",
+                "enum": [
+                  "strict",
+                  "lenient"
+                ],
+                "x-knobs-connection": true
+              },
+              "ratio": {
+                "type": "number",
+                "description": "Sampling ratio.",
+                "default": 0.5,
+                "minimum": 0,
+                "maximum": 1,
+                "x-knobs-connection": true
+              },
+              "debug": {
+                "type": "boolean",
+                "description": "Debug logging.",
+                "default": false
+              }
+            }
+          },
+          "db": {
+            "title": "db",
+            "description": "Test schema: a required key, a secret, a mapped environment name.",
+            "x-knobs-module": "db",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "url"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "Database URL."
+              },
+              "password": {
+                "type": "string",
+                "description": "Database password.",
+                "x-knobs-secret": true
+              },
+              "pool": {
+                "type": "integer",
+                "description": "Connection pool size.",
+                "default": 4,
+                "minimum": 1,
+                "maximum": 64,
+                "x-knobs-env": "DB_POOL"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

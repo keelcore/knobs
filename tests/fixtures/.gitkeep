@@ -1,0 +1,4 @@
+# tests/fixtures/ — static inputs for BATS tests.
+# Per .standards/governance/testing.md: only static, repository-owned inputs
+# belong here. Generated artifacts (build outputs, downloaded corpora) MUST
+# NOT be committed. Add fixture files alongside this placeholder as needed.

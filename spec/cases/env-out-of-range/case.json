@@ -1,0 +1,19 @@
+{
+  "description": "A value outside minimum or maximum fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--env",
+    "DEMO_HTTP_PORT=70000"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "out_of_range",
+      "layer": "env",
+      "key": "demo.http.port"
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "description": "A property with x-knobs-env reads that variable instead of the derived name.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--knob",
+    "demo.db.url=x",
+    "--env",
+    "DB_POOL=8",
+    "--env",
+    "DEMO_DB_POOL=16"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 8080,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.db.url": {
+        "value": "x",
+        "layer": "cli",
+        "secret": false
+      },
+      "demo.db.pool": {
+        "value": 8,
+        "layer": "env",
+        "secret": false
+      }
+    }
+  }
+}

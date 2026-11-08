@@ -1,0 +1,68 @@
+{
+  "description": "A secret from the secrets file is reported redacted.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--global",
+    "global.yaml",
+    "--secrets",
+    "secrets.yaml"
+  ],
+  "modes": {
+    "secrets.yaml": "0600"
+  },
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 8080,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.db.pool": {
+        "value": 4,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.db.url": {
+        "value": "postgres://db.internal/app",
+        "layer": "global",
+        "secret": false
+      },
+      "demo.db.password": {
+        "value": "<redacted>",
+        "layer": "secrets",
+        "secret": true
+      }
+    }
+  }
+}

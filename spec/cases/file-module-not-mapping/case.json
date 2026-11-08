@@ -1,0 +1,19 @@
+{
+  "description": "A module that is not a mapping fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_type",
+      "layer": "global",
+      "key": "demo.http"
+    }
+  }
+}

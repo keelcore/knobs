@@ -1,0 +1,19 @@
+{
+  "description": "An unknown key in a file fails loading, naming layer and key.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "unknown_key",
+      "layer": "global",
+      "key": "demo.http.prot"
+    }
+  }
+}

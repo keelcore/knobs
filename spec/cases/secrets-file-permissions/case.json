@@ -1,0 +1,25 @@
+{
+  "description": "A secrets file readable by group or others fails loading.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--knob",
+    "demo.db.url=x",
+    "--secrets",
+    "secrets.yaml"
+  ],
+  "modes": {
+    "secrets.yaml": "0644"
+  },
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "secrets_file_permissions",
+      "layer": "secrets"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "description": "A file named explicitly that is missing fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--global",
+    "absent.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "file_not_found",
+      "layer": "global"
+    }
+  }
+}

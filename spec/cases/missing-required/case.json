@@ -1,0 +1,19 @@
+{
+  "description": "A required key no layer sets fails after all layers merge.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "missing_required",
+      "layer": "resolve",
+      "key": "demo.db.url"
+    }
+  }
+}

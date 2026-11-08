@@ -1,0 +1,19 @@
+{
+  "description": "An unknown module in a file fails loading.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--user",
+    "user.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "unknown_key",
+      "layer": "user",
+      "key": "demo.cache"
+    }
+  }
+}

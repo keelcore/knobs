@@ -1,0 +1,19 @@
+{
+  "description": "A root key other than the application fails loading.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "unknown_key",
+      "layer": "global",
+      "key": "other"
+    }
+  }
+}

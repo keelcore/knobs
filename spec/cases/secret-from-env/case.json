@@ -1,0 +1,65 @@
+{
+  "description": "A secret may come from env; it is reported redacted.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--knob",
+    "demo.db.url=x",
+    "--env",
+    "DEMO_DB_PASSWORD=hunter2"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 8080,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.db.pool": {
+        "value": 4,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.db.url": {
+        "value": "x",
+        "layer": "cli",
+        "secret": false
+      },
+      "demo.db.password": {
+        "value": "<redacted>",
+        "layer": "env",
+        "secret": true
+      }
+    }
+  }
+}

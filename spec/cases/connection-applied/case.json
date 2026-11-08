@@ -1,0 +1,59 @@
+{
+  "description": "An authorized connection override on a connection-overridable key applies.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--connection",
+    "demo.http.port=9000",
+    "--connection",
+    "demo.http.mode=lenient",
+    "--authorized"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 9000,
+        "layer": "connection",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "lenient",
+        "layer": "connection",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "default",
+        "secret": false
+      }
+    },
+    "attempts": [
+      {
+        "key": "demo.http.mode",
+        "outcome": "applied"
+      },
+      {
+        "key": "demo.http.port",
+        "outcome": "applied"
+      }
+    ]
+  }
+}

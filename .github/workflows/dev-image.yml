@@ -1,0 +1,76 @@
+name: dev-image
+
+# Publishes the tool images (containers/*/Containerfile) to GHCR, tagged by build
+# context (ctx-<hash>), built natively per architecture, joined into a multi-arch
+# index and signed keyless. scripts/dev/run.sh pulls a published context by its tag, and the pre-commit
+# hook names it in containers/NAME/image.ref.
+
+on:
+  # Called first by ci.yml on every push, so each build context is published once, before
+  # the jobs that run in it; publish.sh skips a context GHCR already holds.
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  # Named explicitly: in a called workflow, github.workflow is the caller's name.
+  group: dev-image-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# Repositories are UTC internally (governance/devsecops.md): every step runs in UTC.
+env:
+  TZ: UTC
+
+jobs:
+  push:
+    name: dev-image / push (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          # A consumer's Makefile includes .standards/templates/Makefile.canonical from the submodule.
+          submodules: recursive
+
+      - run: make push-dev-image
+        env:
+          ARCH: ${{ matrix.arch }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # One registry login per job, in the job's temp directory (discarded with the runner).
+          DOCKER_CONFIG: ${{ runner.temp }}/docker-config
+
+  merge:
+    name: dev-image / merge + sign
+    needs: push
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          # A consumer's Makefile includes .standards/templates/Makefile.canonical from the submodule.
+          submodules: recursive
+
+      - run: make merge-dev-image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # One registry login per job (publish.sh), reused read-only by the signing tool image.
+          DOCKER_CONFIG: ${{ runner.temp }}/docker-config

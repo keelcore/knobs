@@ -1,0 +1,6 @@
+---
+description: Bash standards — apply to all bash scripts
+alwaysApply: true
+---
+
+@../../.standards/governance/bash.md

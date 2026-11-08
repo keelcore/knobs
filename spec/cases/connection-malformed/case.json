@@ -1,0 +1,65 @@
+{
+  "description": "Connection text that does not convert, or is outside enum, is rejected.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--connection",
+    "demo.http.port=abc",
+    "--connection",
+    "demo.http.mode=loose",
+    "--connection",
+    "demo.http.read_timeout=soon",
+    "--authorized"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 8080,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "default",
+        "secret": false
+      }
+    },
+    "attempts": [
+      {
+        "key": "demo.http.mode",
+        "outcome": "rejected_malformed"
+      },
+      {
+        "key": "demo.http.port",
+        "outcome": "rejected_malformed"
+      },
+      {
+        "key": "demo.http.read_timeout",
+        "outcome": "rejected_malformed"
+      }
+    ]
+  }
+}

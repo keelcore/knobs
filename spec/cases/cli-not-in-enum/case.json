@@ -1,0 +1,19 @@
+{
+  "description": "A value outside enum fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--knob",
+    "demo.http.mode=loose"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "not_in_enum",
+      "layer": "cli",
+      "key": "demo.http.mode"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "description": "Any value read from the secrets file is secret, even for a key the schema does not mark secret.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--secrets",
+    "secrets.yaml"
+  ],
+  "modes": {
+    "secrets.yaml": "0600"
+  },
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 8080,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "<redacted>",
+        "layer": "secrets",
+        "secret": true
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "default",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "default",
+        "secret": false
+      }
+    }
+  }
+}

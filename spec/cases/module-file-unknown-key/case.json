@@ -1,0 +1,19 @@
+{
+  "description": "An unknown key in a module's own file fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--module-global",
+    "http=http-global.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "unknown_key",
+      "layer": "global",
+      "key": "demo.http.prot"
+    }
+  }
+}
