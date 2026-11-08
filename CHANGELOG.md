@@ -14,8 +14,9 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Fixed
 
-- Unit (linux) checks the tree before the Codecov uploader downloads itself into it; the native smoke test finds the
-  harness by file in `PATH`.
+- Unit (linux) checks the tree before the Codecov uploader downloads itself into it; the native suites run `bats` and the
+  harness from `target/native/<os>-<arch>/` by path, not from `PATH`, whose Windows entries (`D:/...`) split at the
+  drive colon.
 - A native build records the module root package's directory as `.` (`build-native.local.sh`): the canonical
   `build-native.sh` keeps the dev image's absolute path for it.
 - Every release job reads the tag from `inputs.tag` on a manual run (`GITHUB_REF_NAME` there is the branch), so
