@@ -47,3 +47,9 @@ setup() {
   [ "${status}" -ne 0 ]
   ! grep -q '^curl|' "${CALLS}" || false
 }
+
+@test "publish-go-module: INPUT_TAG wins over GITHUB_REF_NAME (a manual run's ref is its branch)" {
+  GITHUB_REF_NAME=main INPUT_TAG=v0.1.0 run bash "${SCRIPT}"
+  [ "${status}" -eq 0 ]
+  grep -q 'proxy.golang.org/example.com/some/lib/@v/v0.1.0.info' "${CALLS}"
+}

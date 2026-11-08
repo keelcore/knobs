@@ -2,8 +2,8 @@
 # publish-go-module.sh
 # Publishes the Go module of this repository at the release tag: verifies the module builds, then
 # asks the Go checksum database and module proxy for the module at the tag, which records it in both
-# (pkg.go.dev reads the proxy). The module path is read from go.mod. The tag comes from
-# GITHUB_REF_NAME (a tag push) or INPUT_TAG (a manual run).
+# (pkg.go.dev reads the proxy). The module path is read from go.mod. The tag is INPUT_TAG (a manual run,
+# whose ref is its branch), else GITHUB_REF_NAME (a tag push).
 # knobs-owned: the canonical publish-go.sh publishes the .standards module only.
 
 # bash configuration:
@@ -43,9 +43,9 @@ function validate_args() {
 }
 
 function resolve_tag() {
-  local -r tag="${GITHUB_REF_NAME:-${INPUT_TAG:-}}"
+  local -r tag="${INPUT_TAG:-${GITHUB_REF_NAME:-}}"
   if [ -z "${tag}" ]; then
-    log '❌ No tag: set GITHUB_REF_NAME (tag push) or INPUT_TAG (manual run)'
+    log '❌ No tag: set INPUT_TAG (manual run) or GITHUB_REF_NAME (tag push)'
     exit 1
   fi
   printf '%s' "${tag}"

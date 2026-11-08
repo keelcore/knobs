@@ -14,6 +14,7 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Fixed
 
+- A manual release run takes its tag from `INPUT_TAG`; its `GITHUB_REF_NAME` is the branch.
 - CI passes `PR_AUTHOR` to the PR policy check (its Dependabot exemption) and `HEAD_SHA` to the coverage delta gate.
 - Dependabot leaves the canonical workflows (`scorecard.yml`, `codeql.yml`) alone: their pins come with the
   `.standards` release. It covers the Go module and its vendor tree.
@@ -24,6 +25,8 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- `release.yml` attests the module zip's SLSA build provenance after the GitHub Release (`make pull-release-module`
+  fetches the zip and checks it against `SHA256SUMS`); `gh attestation verify knobs-vX.Y.Z.zip -R keelcore/knobs`.
 - The release workflow (`release.yml`, `github-release.yml`): after CI passes on the tagged commit and a reviewer
   approves the `release` environment, the Go module is published to the checksum database and proxy
   (`make publish-go-module`, knobs's own `scripts/release/publish-go-module.sh`), then the GitHub Release carries

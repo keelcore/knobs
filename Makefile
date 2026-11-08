@@ -76,3 +76,10 @@ test-integration-local:
 publish-go-module:
 	@echo "📦 Publishing the Go module..."
 	bash scripts/dev/run.sh bash scripts/release/publish-go-module.sh
+
+.PHONY: pull-release-module
+
+## The release's module zip and SHA256SUMS into dist/, checked (release.yml attests the zip)
+pull-release-module:
+	@echo "⬇️  Fetching the release's module zip..."
+	bash scripts/dev/run.sh bash scripts/release/pull-release-module.sh
