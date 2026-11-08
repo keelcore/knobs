@@ -70,8 +70,9 @@ Lowest to highest precedence:
   at its default location is skipped; a file named explicitly that is missing fails with `file_not_found`.
   A module's own files are optional: missing, they are skipped. An `integer` property accepts a YAML number with no
   fractional part; a `number` property accepts any YAML number.
-- **The secrets file** must not be readable, writable or executable by group or others; otherwise it fails with
-  `secrets_file_permissions`.
+- **The secrets file** is its owner's alone, or it fails with `secrets_file_permissions`. Where file modes carry access
+  rights (Linux, macOS), no group or other bit is set. On Windows, where they do not, its owner is the current user,
+  SYSTEM or Administrators, and its DACL grants access to those three only.
 - **env** reads only the variables named by the schemas; an empty value counts as unset.
 - **code** values are typed, as files are: `9000` is an integer, `"9000"` a string. A schema `default` overrides a code
   value for the same key; a code value is the baseline for a key whose schema gives no default.

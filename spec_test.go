@@ -87,7 +87,7 @@ func copyCase(t *testing.T, src string, modes map[string]string) string {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Chmod(filepath.Join(dir, name), os.FileMode(m)); err != nil {
+		if err := setMode(filepath.Join(dir, name), os.FileMode(m)); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -1,7 +1,6 @@
 package knobs
 
 import (
-	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -194,7 +193,7 @@ func (e *Engine) AddStandard(s Standard) error {
 	if env == nil {
 		env = func(string) (string, bool) { return "", false }
 	}
-	global, gx := e.pick(s.GlobalPath, "global_path", paths, env, DefaultGlobalPath(e.set.app))
+	global, gx := e.pick(s.GlobalPath, "global_path", paths, env, defaultGlobalPath(e.set.app, env))
 	user, ux := e.pick(s.UserPath, "user_path", paths, env, DefaultUserPath(e.set.app, env))
 	secrets, sx := e.pick(s.SecretsPath, "secrets_path", paths, env, "")
 	layers := []Layer{
@@ -240,19 +239,4 @@ func (e *Engine) pick(given, knob string, paths map[string]string, env func(stri
 		return p, true
 	}
 	return def, false
-}
-
-// DefaultGlobalPath is the global file's default location: /etc/<app>/config.yaml.
-func DefaultGlobalPath(app string) string { return filepath.Join("/etc", app, "config.yaml") }
-
-// DefaultUserPath is the user file's default location: $XDG_CONFIG_HOME/<app>/config.yaml, else
-// $HOME/.config/<app>/config.yaml, else none.
-func DefaultUserPath(app string, env func(string) (string, bool)) string {
-	if x, ok := env("XDG_CONFIG_HOME"); ok && x != "" {
-		return filepath.Join(x, app, "config.yaml")
-	}
-	if h, ok := env("HOME"); ok && h != "" {
-		return filepath.Join(h, ".config", app, "config.yaml")
-	}
-	return ""
 }

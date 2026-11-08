@@ -2,7 +2,6 @@ package knobs
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"sort"
@@ -178,9 +177,10 @@ func readYAML(layerName, path string, explicit bool) (any, error) {
 		}
 		return nil, nil
 	}
-	if err == nil && layerName == LayerSecrets && info.Mode().Perm()&0o077 != 0 {
-		return nil, newError(CodeSecretsFilePermissions, layerName, "",
-			fmt.Sprintf("%s has mode %04o; the owner alone may have access", path, info.Mode().Perm()))
+	if err == nil && layerName == LayerSecrets {
+		if permErr := ownerOnly(path, info); permErr != nil {
+			return nil, newError(CodeSecretsFilePermissions, layerName, "", permErr.Error())
+		}
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {

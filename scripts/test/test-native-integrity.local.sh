@@ -41,15 +41,29 @@ function validate_args() {
   fi
 }
 
-# native_harness: the knobs-conform on PATH, which the native build placed there.
+# native_harness: the knobs-conform (knobs-conform.exe on Windows) in a PATH directory, which the native build
+# placed there; found by file, not by command lookup, so the result does not depend on the shell's executable rules.
 function native_harness() {
-  local harness
-  harness="$(command -v knobs-conform.exe || command -v knobs-conform || true)"
-  if [ -z "${harness}" ]; then
-    log '❌ knobs-conform is not on PATH: run under scripts/test/test-native-integrity.sh after make build-native'
-    exit 1
-  fi
-  printf '%s' "${harness}"
+  local dir
+  local -a dirs
+  IFS=: read -r -a dirs <<< "${PATH}"
+  for dir in "${dirs[@]}"; do
+    harness_in "${dir}" && return 0
+  done
+  log "❌ knobs-conform is in no PATH directory: ${PATH}"
+  exit 1
+}
+
+# harness_in DIR: prints DIR's knobs-conform.exe or knobs-conform, if it holds one.
+function harness_in() {
+  local name
+  for name in knobs-conform.exe knobs-conform; do
+    if [ -f "${1}/${name}" ]; then
+      printf '%s' "${1}/${name}"
+      return 0
+    fi
+  done
+  return 1
 }
 
 main "${@:-}"

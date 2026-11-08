@@ -6,6 +6,8 @@
 | --- | --- |
 | standard library | everything but YAML |
 | `go.yaml.in/yaml/v3` | YAML 1.2 decoding of the configuration files; the YAML organization's continuation of `gopkg.in/yaml.v3` |
+| `golang.org/x/sys` | Windows only: the secrets file's owner and DACL (`perm_windows.go`) |
+| `github.com/hectane/go-acl` | Windows tests only: files with a given DACL |
 
 Dependencies are vendored (`vendor/`), so builds, tests and the pre-commit hook need no network. A new dependency
 needs the owner's approval, a license on the allowlist (`make lint-licenses`), and no reachable vulnerability

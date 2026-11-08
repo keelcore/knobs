@@ -14,6 +14,8 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Fixed
 
+- Unit (linux) checks the tree before the Codecov uploader downloads itself into it; the native smoke test finds the
+  harness by file in `PATH`.
 - A native build records the module root package's directory as `.` (`build-native.local.sh`): the canonical
   `build-native.sh` keeps the dev image's absolute path for it.
 - Every release job reads the tag from `inputs.tag` on a manual run (`GITHUB_REF_NAME` there is the branch), so
@@ -29,6 +31,12 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- On Windows, the secrets file is checked by its security descriptor (`perm_windows.go`, `golang.org/x/sys/windows`):
+  owned by the current user, SYSTEM or Administrators, with a DACL granting those three only; Linux and macOS keep
+  the mode-bit check (`perm_posix.go`). Windows-only tests set DACLs with `github.com/hectane/go-acl`.
+- Windows default file locations: `%ProgramData%\<app>\config.yaml` (global) and `%APPDATA%\<app>\config.yaml`
+  (user) (`paths_windows.go`); Linux and macOS keep `/etc/<app>` and `$XDG_CONFIG_HOME` or `~/.config/<app>`
+  (`paths_posix.go`).
 - macOS and Windows CI, as keel runs it: the dev image cross-builds the Go test binaries, bats and
   `knobs-conform` (`make build-native`, with knobs' `build-native.local.sh`); the native runners run the unit tests
   (`make test-native`), the conformance suite on macOS and a harness smoke test on Windows

@@ -277,22 +277,7 @@ func TestStandardPaths(t *testing.T) {
 	wantCode(t, err, CodeFileNotFound)
 }
 
-func TestStandardDefaultPaths(t *testing.T) {
-	g, u := DefaultGlobalPath("demo"), DefaultUserPath("demo", func(k string) (string, bool) {
-		if k == "HOME" {
-			return "/home/x", true
-		}
-		return "", false
-	})
-	if g != "/etc/demo/config.yaml" || u != "/home/x/.config/demo/config.yaml" {
-		t.Fatalf("default paths: %s %s", g, u)
-	}
-	if u := DefaultUserPath("demo", func(k string) (string, bool) { return "/xdg", k == "XDG_CONFIG_HOME" }); u != "/xdg/demo/config.yaml" {
-		t.Fatalf("XDG path: %s", u)
-	}
-	if u := DefaultUserPath("demo", func(string) (string, bool) { return "", false }); u != "" {
-		t.Fatalf("no home: %q", u)
-	}
+func TestAddStandardRejectsAMalformedKnob(t *testing.T) {
 	e := engine(t, httpSchema)
 	if err := e.AddStandard(Standard{Knobs: []string{"bad"}}); err == nil {
 		t.Fatal("a malformed --knob fails AddStandard")

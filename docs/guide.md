@@ -75,9 +75,9 @@ Lowest to highest precedence:
 | --- | --- |
 | `code` | each module's `Code`, then any `knobs.Code` layer |
 | `schema` | each property's `default` |
-| `global` | `/etc/demo/config.yaml`, then each module's `GlobalPath` |
-| `user` | `$XDG_CONFIG_HOME/demo/config.yaml` (else `~/.config/demo/config.yaml`), then each module's `UserPath` |
-| `secrets` | the secrets file, when one is named; readable by its owner only |
+| `global` | `/etc/demo/config.yaml` (Windows: `%ProgramData%\demo\config.yaml`), then each module's `GlobalPath` |
+| `user` | `$XDG_CONFIG_HOME/demo/config.yaml` (else `~/.config/demo/config.yaml`; Windows: `%APPDATA%\demo\config.yaml`), then each module's `UserPath` |
+| `secrets` | the secrets file, when one is named: its owner's alone (mode bits on Linux and macOS, owner and DACL on Windows) |
 | `env` | `DEMO_HTTP_PORT`, or the property's `x-knobs-env` |
 | `cli` | `--knob demo.http.port=9000` |
 | `runtime` | `Standard.Runtime`, values the program sets while running |

@@ -251,6 +251,8 @@ jobs:
           submodules: recursive
       - name: Unit tests
         run: make test-unit
+      # The tool targets leave the tree as checked out; checked before the Codecov uploader downloads itself into it.
+      - run: make check-clean-tree
       - name: Upload coverage to Codecov
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7.1.1
@@ -258,7 +260,6 @@ jobs:
           files: target/coverage.txt
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
-      - run: make check-clean-tree
 
   # ---------------------------------------------------------------------------
   # Native platforms — the dev image cross-builds everything a macOS or Windows
