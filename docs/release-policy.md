@@ -28,3 +28,20 @@ make create-release
 ```
 
 `make create-release-local PREV_TAG=vX.Y.Z` runs the bump hook alone.
+
+## What a release publishes
+
+knobs is a library: a release is the Go module `github.com/keelcore/knobs` at the tag. The pushed tag starts
+`.github/workflows/release.yml`:
+
+1. **CI passed:** waits for every workflow run on the tagged commit, and fails if any is red.
+2. **Publish:** after a reviewer approves the `release` environment, `make publish-go-module` records the module at
+   the tag in the Go checksum database and module proxy, and `make wait-for-publish ARGS=go` waits until the proxy
+   serves it.
+3. **GitHub Release** (`github-release.yml`): the module zip as the proxy serves it, checked against the checksum
+   database; its SBOM and the SBOMs of the tool images the release was built in; `SHA256SUMS`; a cosign bundle per
+   file; the notes (the tag message, the version's CHANGELOG entries, the pins). Its last step verifies every
+   checksum and signature.
+
+Consumers take a release with `go get github.com/keelcore/knobs@vX.Y.Z`; release hooks run the schema bump tool with
+`go run github.com/keelcore/knobs/cmd/knobs-schema-bump@vX.Y.Z OLD NEW`.

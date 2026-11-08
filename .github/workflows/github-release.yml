@@ -1,0 +1,62 @@
+name: github-release
+
+# The GitHub Release for a published tag: every artifact as its registry serves it
+# (checked against the registry's hash), one SBOM per artifact, build-environment
+# SBOMs of the tag's pinned tool images, current_pins.md, SHA256SUMS and a keyless
+# cosign bundle per file; the notes carry the tag message, the version's CHANGELOG
+# section and the pins. The last step verifies every checksum and signature.
+# Called by release.yml after the module is published; dispatch it to (re)build
+# the Release of an existing tag.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Tag to release (vX.Y.Z)"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (vX.Y.Z)"
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# Repositories are UTC internally (governance/devsecops.md): every step runs in UTC.
+env:
+  TZ: UTC
+
+jobs:
+  release:
+    name: release / github
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          # The Makefile includes .standards/templates/Makefile.canonical from the submodule.
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: true
+
+      - run: make build-release-assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: make publish-github-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: make verify-release-blobs

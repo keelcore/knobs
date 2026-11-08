@@ -24,6 +24,11 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- The release workflow (`release.yml`, `github-release.yml`): after CI passes on the tagged commit and a reviewer
+  approves the `release` environment, the Go module is published to the checksum database and proxy
+  (`make publish-go-module`, knobs's own `scripts/release/publish-go-module.sh`), then the GitHub Release carries
+  the module zip, its SBOM, checksums, signatures and provenance. The canonical `.standards` package publishers are
+  excluded (`.canonical-exclude`).
 - `Module` and `Engine.Attach(modules...)`: each Go module gives the engine its own schema, its code values and its
   own files, so `main` only attaches modules. The lowest layer is `code`: every module's code values, then a
   `Code` layer's (harness `--code`); a schema `default` overrides it as the `schema` layer, which replaces the

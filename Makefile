@@ -69,3 +69,10 @@ check-schema-types:
 test-integration-local:
 	@echo "🧪 Running knobs integration suites..."
 	bash scripts/dev/run.sh bash scripts/test-integration.local.sh
+
+.PHONY: publish-go-module
+
+## Publish the Go module at the release tag to the checksum database and proxy (release.yml)
+publish-go-module:
+	@echo "📦 Publishing the Go module..."
+	bash scripts/dev/run.sh bash scripts/release/publish-go-module.sh

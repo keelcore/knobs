@@ -1,0 +1,96 @@
+name: Release
+
+# knobs is a library: a release is the Go module at the tag. The pushed tag is published to the Go
+# checksum database and module proxy after CI passed on its commit and a reviewer approved the
+# release environment; the GitHub Release then carries the module zip as the proxy serves it, its
+# SBOM, SHA256SUMS, cosign signatures and provenance (github-release.yml).
+#
+# ci-passed → publish-go (environment: release) → github-release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (vX.Y.Z)"
+        required: true
+
+# No cancellation: a release run always completes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# Repositories are UTC internally (governance/devsecops.md): every step runs in UTC.
+env:
+  TZ: UTC
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # CI passed — waits for every earlier workflow run on this commit to finish, and fails if any is
+  # red, so a red commit is never published.
+  # ---------------------------------------------------------------------------
+  ci-passed:
+    name: CI passed on this commit
+    runs-on: ubuntu-26.04
+    timeout-minutes: 120
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - run: make wait-for-ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # ---------------------------------------------------------------------------
+  # Publish — after approval in the release environment, the module at the tag is recorded in the Go
+  # checksum database and proxy; the job ends when the proxy serves it.
+  # ---------------------------------------------------------------------------
+  publish-go:
+    name: Publish Go module
+    needs: ci-passed
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - run: make publish-go-module
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          KEELCORE_DEV_ENV: INPUT_TAG
+
+      - run: make wait-for-publish ARGS="go"
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          KEELCORE_DEV_ENV: INPUT_TAG
+
+  # ---------------------------------------------------------------------------
+  # GitHub Release — the published module's assets, signed, and the release notes; rerunnable for
+  # any tag by dispatching github-release.yml.
+  # ---------------------------------------------------------------------------
+  github-release:
+    name: release / github
+    needs: publish-go
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/github-release.yml
+    with:
+      tag: ${{ inputs.tag || github.ref_name }}
