@@ -24,6 +24,10 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- `Module` and `Engine.Attach(modules...)`: each Go module gives the engine its own schema, its code values and its
+  own files, so `main` only attaches modules. The lowest layer is `code`: every module's code values, then a
+  `Code` layer's (harness `--code`); a schema `default` overrides it as the `schema` layer, which replaces the
+  `default` layer. A key marked secret set in code fails with `secret_in_code`.
 - Repository bootstrapped to keelcore standards (`.standards` v0.10.24): canonical `Makefile`, scripts, pre-commit
   hook, dev image (`containers/dev`), CI, CodeQL, DCO, Scorecard, dev-image and update-pins workflows, rulesets as
   code (`.github/rulesets/`, `make check-rulesets`), `README.md`, `SECURITY.md`, governance and contribution docs.

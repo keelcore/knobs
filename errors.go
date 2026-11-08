@@ -17,6 +17,7 @@ const (
 	CodeSecretInPlainFile      = "secret_in_plain_file"
 	CodeSecretOnCLI            = "secret_on_cli"
 	CodeSecretsFilePermissions = "secrets_file_permissions"
+	CodeSecretInCode           = "secret_in_code"
 	CodeMissingRequired        = "missing_required"
 	CodeInvalidArgument        = "invalid_argument"
 )

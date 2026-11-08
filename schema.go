@@ -58,13 +58,14 @@ type property struct {
 	env          string
 }
 
-// module is one attached schema: its properties, required names, its own files, and the schema
-// as written (for the master schema).
+// module is one attached module: its properties, required names, code values, own files, and the
+// schema as written (for the master schema).
 type module struct {
 	name       string
 	props      map[string]*property
 	required   []string
 	raw        map[string]any
+	code       map[string]any
 	globalPath string
 	userPath   string
 }

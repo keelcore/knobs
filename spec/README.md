@@ -52,13 +52,14 @@ Lowest to highest precedence:
 
 | Layer | Source | Secrets |
 | --- | --- | --- |
-| `default` | each property's `default` | never (a secret has no default) |
+| `code` | values the application sets in code | a key marked secret fails: `secret_in_code` (a credential in code is hardcoded) |
+| `schema` | each property's `default`, when the schema gives one | never (a secret has no default) |
 | `global` | the global file, then each module's global file | a key marked secret fails: `secret_in_plain_file` |
 | `user` | the user file, then each module's user file | a key marked secret fails: `secret_in_plain_file` |
 | `secrets` | the secrets file | every value from it is secret |
 | `env` | the environment | allowed |
 | `cli` | `--knob` arguments | a key marked secret fails: `secret_on_cli` (argv is visible to other users) |
-| `runtime` | values set in code | allowed |
+| `runtime` | values the application sets while running | allowed |
 | `connection` | the values the client sends with a connection, per connection | never: a secret is not connection-overridable |
 
 - **Files** are YAML 1.2 mappings with the application name as their only root key, except a module's own file,
@@ -69,6 +70,8 @@ Lowest to highest precedence:
 - **The secrets file** must not be readable, writable or executable by group or others; otherwise it fails with
   `secrets_file_permissions`.
 - **env** reads only the variables named by the schemas; an empty value counts as unset.
+- **code** values are typed, as files are: `9000` is an integer, `"9000"` a string. A schema `default` overrides a code
+  value for the same key; a code value is the baseline for a key whose schema gives no default.
 - **env, cli, runtime and connection** values are text, converted to the property's type: `integer` is optional `-` and
   digits; `number` is a decimal number; `boolean` is `true` or `false`; `string` is the text as given.
 - **Every layer is validated** against the schemas before it is merged, so an error names its layer and key.
@@ -77,11 +80,11 @@ Lowest to highest precedence:
 
 ## Connections
 
-The layers up to `runtime` are the process configuration, resolved once. A connection carries the caller's state:
-a set of key-to-text values, and whether the connection is authorized for overrides. The caller sends that state
-with every connection (as connection headers, call metadata or anything else); the application maps it to values,
-and knobs never sees the transport. knobs keeps no state between connections: the same values and authorization give
-the same result on any node. Each value is checked in this order:
+The layers from `code` to `runtime` are the process configuration, resolved once. A connection carries the
+caller's state: a set of key-to-text values, and whether the connection is authorized for overrides. The caller
+sends that state with every connection (as connection headers, call metadata or anything else); the application
+maps it to values, and knobs never sees the transport. knobs keeps no state between connections: the same values and
+authorization give the same result on any node. Each value is checked in this order:
 
 1. Not authorized: `rejected_unauthorized`.
 2. No schema defines the key, it is not `x-knobs-connection`, or it is secret: `rejected_not_overridable`.
@@ -95,9 +98,9 @@ the same result on any node. Each value is checked in this order:
 An error is reported as `{"error": {"code", "layer", "key"}}`; `key` is the dotted key when the error concerns one,
 and is absent otherwise. Codes: `schema_invalid`, `module_conflict`, `file_not_found`, `file_parse`, `unknown_key`,
 `invalid_type`, `out_of_range`, `not_in_enum`, `invalid_length`, `secret_in_plain_file`, `secret_on_cli`,
-`secrets_file_permissions`, `missing_required`, `invalid_argument`. Messages are free text, never part of the
-contract, and never contain a secret value. When several errors occur, the first is reported: layers in precedence
-order, keys in sorted order within a layer.
+`secrets_file_permissions`, `secret_in_code`, `missing_required`, `invalid_argument`. Messages are free text, never
+part of the contract, and never contain a secret value. When several errors occur, the first is reported: layers in
+precedence order, keys in sorted order within a layer.
 
 ## The conformance harness
 
@@ -106,12 +109,13 @@ Each implementation builds `knobs-conform`:
 ```text
 knobs-conform --app NAME --schema FILE... [--global FILE] [--user FILE] [--secrets FILE]
               [--module-global MODULE=FILE] [--module-user MODULE=FILE]
-              [--env NAME=VALUE]... [--knob KEY=VALUE]... [--runtime KEY=VALUE]...
+              [--code KEY=JSON]... [--env NAME=VALUE]... [--knob KEY=VALUE]... [--runtime KEY=VALUE]...
               [--connection KEY=VALUE]... [--authorized]
               resolve | dump | print-schema
 ```
 
-The harness reads no ambient environment: `--env` is the whole environment. It writes JSON to stdout and exits 0, or
+The harness reads no ambient environment: `--env` is the whole environment. `--code` sets a code value; its value
+is JSON (`--code demo.http.port=9000`, `--code 'demo.http.host="::1"'`). It writes JSON to stdout and exits 0, or
 writes the error object and exits 2.
 
 - `resolve`: `{"values": {KEY: {"value", "layer", "secret"}}, "attempts": [{"key", "outcome"}]}`. A secret's value is

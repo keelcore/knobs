@@ -2,7 +2,7 @@
 // attaches one JSON Schema per module (Attach), and adds layers in precedence order, lowest
 // first (Add, or AddStandard for the standard set):
 //
-//	default → global file → user file → secrets file → env → cli → runtime → connection
+//	code → schema default → global file → user file → secrets file → env → cli → runtime → connection
 //
 // Every layer is validated against the schemas before it is merged, so an error names its
 // layer and key; a schema may use only the keywords knobs enforces, so no rule in it goes

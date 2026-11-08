@@ -26,7 +26,7 @@ func processConfig(t testing.TB) *Config {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := e.Attach([]byte(connSchema), "", ""); err != nil {
+	if err := e.Attach(Module{Schema: []byte(connSchema)}); err != nil {
 		t.Fatal(err)
 	}
 	e.Add(Defaults())

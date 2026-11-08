@@ -1,0 +1,21 @@
+{
+  "description": "Code values are typed: a number for a string key fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--code",
+    "demo.db.url=5"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_type",
+      "layer": "code",
+      "key": "demo.db.url"
+    }
+  }
+}

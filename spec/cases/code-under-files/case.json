@@ -1,0 +1,60 @@
+{
+  "description": "Every layer above code overrides it.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--code",
+    "demo.db.url=\"postgres://code/app\"",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 8080,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.db.pool": {
+        "value": 4,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.db.url": {
+        "value": "postgres://file/app",
+        "layer": "global",
+        "secret": false
+      }
+    }
+  }
+}

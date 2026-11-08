@@ -19,6 +19,7 @@ type invocation struct {
 	schemas                  []string
 	global, user, secrets    string
 	moduleGlobal, moduleUser map[string]string
+	code                     map[string]any
 	env                      map[string]string
 	knobs                    []string
 	runtime                  map[string]string
@@ -106,12 +107,13 @@ func build(inv *invocation) (*knobs.Engine, error) {
 			return nil, &knobs.Error{Code: knobs.CodeFileNotFound, Layer: "schema", Msg: err.Error()}
 		}
 		mod := moduleOf(data)
-		if err := e.Attach(data, inv.moduleGlobal[mod], inv.moduleUser[mod]); err != nil {
+		if err := e.Attach(knobs.Module{Schema: data, GlobalPath: inv.moduleGlobal[mod], UserPath: inv.moduleUser[mod]}); err != nil {
 			return nil, err
 		}
 	}
 	env := func(name string) (string, bool) { v, ok := inv.env[name]; return v, ok }
 	layers := []knobs.Layer{
+		knobs.Code(inv.code),
 		knobs.Defaults(),
 		knobs.File(knobs.LayerGlobal, inv.global, true),
 		knobs.File(knobs.LayerUser, inv.user, true),
@@ -134,7 +136,7 @@ func moduleOf(data []byte) string {
 
 func parse(args []string) (*invocation, error) {
 	inv := &invocation{moduleGlobal: map[string]string{}, moduleUser: map[string]string{}, env: map[string]string{},
-		runtime: map[string]string{}}
+		runtime: map[string]string{}, code: map[string]any{}}
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		if !strings.HasPrefix(a, "--") {
@@ -181,6 +183,8 @@ func (inv *invocation) set(flag, v string) error {
 		return pair(inv.env, flag, v)
 	case "--runtime":
 		return pair(inv.runtime, flag, v)
+	case "--code":
+		return inv.setCode(v)
 	case "--connection":
 		if inv.connection == nil {
 			inv.connection = map[string]string{}
@@ -189,6 +193,17 @@ func (inv *invocation) set(flag, v string) error {
 	default:
 		return fmt.Errorf("unknown flag %s", flag)
 	}
+	return nil
+}
+
+// setCode reads --code KEY=JSON.
+func (inv *invocation) setCode(v string) error {
+	k, raw, ok := strings.Cut(v, "=")
+	var val any
+	if !ok || k == "" || json.Unmarshal([]byte(raw), &val) != nil {
+		return errors.New("--code wants KEY=JSON")
+	}
+	inv.code[k] = val
 	return nil
 }
 

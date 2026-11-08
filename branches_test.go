@@ -85,7 +85,7 @@ func TestSchemaShapeErrors(t *testing.T) {
 		"top level not object":  `[1]`,
 	} {
 		t.Run(name, func(t *testing.T) {
-			wantCode(t, engine(t).Attach([]byte(s), "", ""), CodeSchemaInvalid)
+			wantCode(t, engine(t).Attach(Module{Schema: []byte(s)}), CodeSchemaInvalid)
 		})
 	}
 }
@@ -96,7 +96,7 @@ func TestModuleFileParseError(t *testing.T) {
 		t.Fatal(err)
 	}
 	e, _ := New("demo")
-	if err := e.Attach([]byte(httpSchema), path, ""); err != nil {
+	if err := e.Attach(Module{Schema: []byte(httpSchema), GlobalPath: path}); err != nil {
 		t.Fatal(err)
 	}
 	e.Add(Defaults(), File(LayerGlobal, "", false))
@@ -195,5 +195,108 @@ func TestSecretOfNonString(t *testing.T) {
 	s, err := c.Secret("http", "port")
 	if err != nil || s.Reveal() != "9000" {
 		t.Fatalf("a secret integer reveals as text: %v %q", err, s.Reveal())
+	}
+}
+
+func TestCodeLayer(t *testing.T) {
+	e := engine(t, httpSchema, dbSchema)
+	e.Add(Code(map[string]any{"demo.http.port": 7000, "demo.http.host": "0.0.0.0"}), Defaults())
+	c, err := e.Resolve()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A schema default overrides the code value for the same key.
+	if v, _ := c.Get("demo.http.port"); v.Layer != LayerSchema || v.Value != int64(8080) {
+		t.Fatalf("schema over code: %+v", v)
+	}
+	e = engine(t, optionalSchema)
+	e.Add(Code(map[string]any{"demo.opt.pin": 3, "demo.opt.wait": 90 * time.Second}), Defaults())
+	c, err = e.Resolve()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v, _ := c.Get("demo.opt.pin"); v.Layer != LayerCode || v.Value != int64(3) {
+		t.Fatalf("code baseline: %+v", v)
+	}
+	if d, _ := c.Duration("opt", "wait"); d != 90*time.Second {
+		t.Fatalf("a time.Duration in code: %v", d)
+	}
+	for code, values := range map[string]map[string]any{
+		CodeSecretInCode: {"demo.db.password": "hunter2"},
+		CodeInvalidType:  {"demo.http.port": "7000"},
+		CodeUnknownKey:   {"demo.http.nope": 1},
+	} {
+		e := engine(t, httpSchema, dbSchema)
+		e.Add(Code(values))
+		_, err := e.Resolve()
+		wantCode(t, err, code)
+	}
+	if Code(nil).Name() != LayerCode {
+		t.Fatal("name")
+	}
+}
+
+// TestAttachModules: main attaches each module; every module brings its own schema, its code values (keyed
+// by its own knob names) and its own files, and the engine aggregates them.
+func TestAttachModules(t *testing.T) {
+	dir := t.TempDir()
+	optGlobal := filepath.Join(dir, "opt.yaml")
+	if err := os.WriteFile(optGlobal, []byte("pin: 5\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	httpMod := Module{Schema: []byte(httpSchema), Code: map[string]any{"port": 7000, "host": "0.0.0.0"}}
+	optMod := Module{Schema: []byte(optionalSchema), Code: map[string]any{"limit": 2, "wait": 3 * time.Second}, GlobalPath: optGlobal}
+	e, _ := New("demo")
+	if err := e.Attach(httpMod, optMod); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.AddStandard(Standard{}); err != nil {
+		t.Fatal(err)
+	}
+	c, err := e.Resolve()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]Value{
+		"demo.http.port": {Value: int64(8080), Layer: LayerSchema}, // a schema default overrides module code
+		"demo.opt.limit": {Value: int64(2), Layer: LayerCode},      // module code is the baseline
+		"demo.opt.wait":  {Value: "3s", Layer: LayerCode},
+		"demo.opt.pin":   {Value: int64(5), Layer: LayerGlobal}, // the module's own file
+	} {
+		if v, _ := c.Get(key); v.Value != want.Value || v.Layer != want.Layer {
+			t.Fatalf("%s: %+v, want %+v", key, v, want)
+		}
+	}
+	if props := e.Schema()["properties"].(map[string]any)["demo"].(map[string]any)["properties"].(map[string]any); len(props) != 2 {
+		t.Fatalf("both modules aggregate into the master schema: %v", props)
+	}
+}
+
+func TestModuleCodeErrors(t *testing.T) {
+	for code, mod := range map[string]Module{
+		CodeUnknownKey:   {Schema: []byte(httpSchema), Code: map[string]any{"nope": 1}},
+		CodeInvalidType:  {Schema: []byte(httpSchema), Code: map[string]any{"port": "7000"}},
+		CodeSecretInCode: {Schema: []byte(dbSchema), Code: map[string]any{"password": "hunter2"}},
+	} {
+		e, _ := New("demo")
+		if err := e.Attach(mod); err != nil {
+			t.Fatal(err)
+		}
+		e.Add(Code(nil))
+		_, err := e.Resolve()
+		wantCode(t, err, code)
+	}
+	// An explicit Code layer applies after the modules' own values.
+	e, _ := New("demo")
+	if err := e.Attach(Module{Schema: []byte(optionalSchema), Code: map[string]any{"pin": 1}}); err != nil {
+		t.Fatal(err)
+	}
+	e.Add(Code(map[string]any{"demo.opt.pin": 2}))
+	c, err := e.Resolve()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := c.Int("opt", "pin"); n != 2 {
+		t.Fatalf("explicit code over module code: %d", n)
 	}
 }

@@ -18,22 +18,22 @@
       },
       "demo.http.host": {
         "value": "127.0.0.1",
-        "layer": "default",
+        "layer": "schema",
         "secret": false
       },
       "demo.http.read_timeout": {
         "value": "5s",
-        "layer": "default",
+        "layer": "schema",
         "secret": false
       },
       "demo.http.mode": {
         "value": "strict",
-        "layer": "default",
+        "layer": "schema",
         "secret": false
       },
       "demo.http.ratio": {
         "value": 0.5,
-        "layer": "default",
+        "layer": "schema",
         "secret": false
       },
       "demo.http.debug": {

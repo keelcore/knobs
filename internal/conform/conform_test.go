@@ -128,6 +128,7 @@ func TestMainArgumentErrors(t *testing.T) {
 		{"bad module file", []string{"--app", "demo", "--module-global", "nomodule", "resolve"}},
 		{"bad app", []string{"--app", "Demo", "resolve"}},
 		{"command not last", []string{"resolve", "--app", "demo"}},
+		{"bad code value", []string{"--app", "demo", "--code", "demo.http.port=not-json", "resolve"}},
 		{"bad connection", []string{"--app", "demo", "--connection", "no-equals", "resolve"}},
 		{"missing schema", []string{"--app", "demo", "--schema", "/nonexistent/schema.json", "resolve"}},
 	} {

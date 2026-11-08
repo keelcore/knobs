@@ -37,7 +37,7 @@ func gate(t *testing.T, layers ...Layer) (*Config, error) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := e.Attach([]byte(gateSchema), "", ""); err != nil {
+	if err := e.Attach(Module{Schema: []byte(gateSchema)}); err != nil {
 		t.Fatal(err)
 	}
 	e.Add(Defaults())
@@ -80,8 +80,8 @@ func layerOf(t *testing.T, c *Config, key string) string {
 
 // TestTierString (both resolvers): the layer names, lowest to highest.
 func TestServotrimTierNames(t *testing.T) {
-	want := []string{"default", "global", "user", "secrets", "env", "cli", "runtime", "connection"}
-	got := []string{LayerDefault, LayerGlobal, LayerUser, LayerSecrets, LayerEnv, LayerCLI, LayerRuntime, LayerConnection}
+	want := []string{"code", "schema", "global", "user", "secrets", "env", "cli", "runtime", "connection"}
+	got := []string{LayerCode, LayerSchema, LayerGlobal, LayerUser, LayerSecrets, LayerEnv, LayerCLI, LayerRuntime, LayerConnection}
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("layer %d: %s, want %s", i, got[i], want[i])
@@ -99,7 +99,7 @@ func TestServotrimPrecedence(t *testing.T) {
 		window int64
 		layer  string
 	}{
-		{nil, 16, LayerDefault},
+		{nil, 16, LayerSchema},
 		{[]Layer{File(LayerGlobal, file, true)}, 20, LayerGlobal},
 		{[]Layer{File(LayerGlobal, file, true), Env(env)}, 30, LayerEnv},
 		{[]Layer{File(LayerGlobal, file, true), Env(env), CLI([]string{"servotrim.gate.window=40"})}, 40, LayerCLI},
@@ -114,7 +114,7 @@ func TestServotrimPrecedence(t *testing.T) {
 // TestNilEnvSource: a nil environment lookup is tolerated.
 func TestServotrimNilEnv(t *testing.T) {
 	c := mustGate(t, Env(nil))
-	if layerOf(t, c, "servotrim.gate.window") != LayerDefault {
+	if layerOf(t, c, "servotrim.gate.window") != LayerSchema {
 		t.Fatal("a nil env sets nothing")
 	}
 }
@@ -253,7 +253,7 @@ func TestServotrimEmptyValues(t *testing.T) {
 	if s, _ := c.String("gate", "mode"); s != "" || layerOf(t, c, "servotrim.gate.mode") != LayerGlobal {
 		t.Fatalf("empty file string: %q", s)
 	}
-	if layerOf(t, c, "servotrim.gate.locked") != LayerDefault {
+	if layerOf(t, c, "servotrim.gate.locked") != LayerSchema {
 		t.Fatal("an empty env value is unset")
 	}
 }
@@ -262,7 +262,7 @@ func TestServotrimEmptyValues(t *testing.T) {
 // derive from app, module and name; header names are the client's mapping.
 func TestServotrimKeyForms(t *testing.T) {
 	e, _ := New("servotrim")
-	if err := e.Attach([]byte(gateSchema), "", ""); err != nil {
+	if err := e.Attach(Module{Schema: []byte(gateSchema)}); err != nil {
 		t.Fatal(err)
 	}
 	s := &Schemas{set: e.set}
@@ -323,7 +323,7 @@ func TestServotrimProvenance(t *testing.T) {
 			t.Fatalf("keys %v", keys)
 		}
 	}
-	if layers[3] != LayerConnection || layers[0] != LayerDefault {
+	if layers[3] != LayerConnection || layers[0] != LayerSchema {
 		t.Fatalf("layers %v", layers)
 	}
 }

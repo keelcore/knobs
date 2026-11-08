@@ -1,0 +1,23 @@
+{
+  "description": "A key marked secret set in code fails: a credential in code is hardcoded.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--knob",
+    "demo.db.url=x",
+    "--code",
+    "demo.db.password=\"hunter2\""
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "secret_in_code",
+      "layer": "code",
+      "key": "demo.db.password"
+    }
+  }
+}

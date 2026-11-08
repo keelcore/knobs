@@ -1,0 +1,21 @@
+{
+  "description": "An unknown key in code fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--schema",
+    "{schema}/db.json",
+    "--code",
+    "demo.db.nope=1"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "unknown_key",
+      "layer": "code",
+      "key": "demo.db.nope"
+    }
+  }
+}

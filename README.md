@@ -20,14 +20,15 @@ Lowest to highest precedence; a key takes the value of the highest layer that se
 
 | # | Layer | Source |
 | --- | --- | --- |
-| 1 | default | the schema's `default` for the key |
-| 2 | global file | `/etc/<app>/config.yaml` |
-| 3 | user file | `$XDG_CONFIG_HOME/<app>/config.yaml` |
-| 4 | secrets file | `<app>-secrets.yaml`, readable by its owner only; every value from it is secret |
-| 5 | env | `<APP>_<MODULE>_<NAME>` |
-| 6 | cli | `--knob <app>.<module>.<name>=<value>` |
-| 7 | runtime | values set in code |
-| 8 | connection | values the caller sends with a connection, on allowlisted keys, when the connection is authorized |
+| 1 | code | values the application sets in code |
+| 2 | schema | the schema's `default` for the key, when it gives one |
+| 3 | global file | `/etc/<app>/config.yaml` |
+| 4 | user file | `$XDG_CONFIG_HOME/<app>/config.yaml` |
+| 5 | secrets file | `<app>-secrets.yaml`, readable by its owner only; every value from it is secret |
+| 6 | env | `<APP>_<MODULE>_<NAME>` |
+| 7 | cli | `--knob <app>.<module>.<name>=<value>` |
+| 8 | runtime | values the application sets while running |
+| 9 | connection | values the caller sends with a connection, on allowlisted keys, when the connection is authorized |
 
 Every layer is validated against the application's schema before it is merged: unknown keys, wrong types and values
 out of bounds fail loading, naming the source and the key. Secrets print as `<redacted>` in every dump, audit record
@@ -50,12 +51,29 @@ version, the release tag.
 
 ## Go
 
+Each Go module owns its knobs: its schema, its code values and its own files.
+
+```go
+// package httpd
+
+//go:embed knobs.json
+var schema []byte
+
+// Knobs is what main attaches: the schema names the module (x-knobs-module: http).
+var Knobs = knobs.Module{
+    Schema: schema,
+    Code:   map[string]any{"workers": runtime.NumCPU()},
+}
+```
+
+`main` creates the one engine and attaches each module:
+
 ```go
 engine, err := knobs.New("demo")
 if err != nil {
     return err
 }
-if err := engine.Attach(httpSchema, "", ""); err != nil { // one JSON Schema per module
+if err := engine.Attach(httpd.Knobs, store.Knobs); err != nil { // each module brings its own knobs
     return err
 }
 if err := engine.AddStandard(knobs.Standard{Env: os.LookupEnv, Knobs: flagValues}); err != nil {

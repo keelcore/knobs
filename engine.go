@@ -23,22 +23,39 @@ func New(app string) (*Engine, error) {
 	return &Engine{set: &schemaSet{app: app, modules: map[string]*module{}}}, nil
 }
 
-// Attach mounts one module schema at <app>.<module>, the module named by its x-knobs-module.
-// globalPath and userPath name the module's own files, holding its mapping directly; each
-// applies right after the layer of the same name (LayerGlobal, LayerUser), and either may be
-// empty or missing.
-func (e *Engine) Attach(schema []byte, globalPath, userPath string) error {
+// Module is everything one Go module gives the engine about its own knobs, so main only attaches it:
+// its JSON Schema (which names the module with x-knobs-module), its code values keyed by its own knob
+// names (the code layer, under every other), and its own files, holding its mapping directly, which
+// apply right after the layer of the same name (LayerGlobal, LayerUser); either path may be empty or
+// missing.
+type Module struct {
+	Schema               []byte
+	Code                 map[string]any
+	GlobalPath, UserPath string
+}
+
+// Attach mounts each module at <app>.<module>. Two modules with one name fail with module_conflict.
+func (e *Engine) Attach(modules ...Module) error {
 	if e.closed {
 		return newError(CodeInvalidArgument, "schema", "", "Attach after Resolve")
 	}
-	m, err := parseModule(e.set.app, schema)
+	for _, mod := range modules {
+		if err := e.attach(mod); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *Engine) attach(mod Module) error {
+	m, err := parseModule(e.set.app, mod.Schema)
 	if err != nil {
 		return err
 	}
 	if _, dup := e.set.modules[m.name]; dup {
 		return newError(CodeModuleConflict, "schema", e.set.app+"."+m.name, "two schemas for one module")
 	}
-	m.globalPath, m.userPath = globalPath, userPath
+	m.code, m.globalPath, m.userPath = mod.Code, mod.GlobalPath, mod.UserPath
 	e.set.modules[m.name] = m
 	return nil
 }
@@ -157,7 +174,7 @@ type Standard struct {
 	Runtime                           map[string]string
 }
 
-// AddStandard adds the standard layers in precedence order: default, global, user, secrets,
+// AddStandard adds the standard layers in precedence order: code, schema, global, user, secrets,
 // env, cli and, when given, runtime.
 func (e *Engine) AddStandard(s Standard) error {
 	paths, knobs, err := e.pathKnobs(s.Knobs)
@@ -172,7 +189,7 @@ func (e *Engine) AddStandard(s Standard) error {
 	user, ux := e.pick(s.UserPath, "user_path", paths, env, DefaultUserPath(e.set.app, env))
 	secrets, sx := e.pick(s.SecretsPath, "secrets_path", paths, env, "")
 	layers := []Layer{
-		Defaults(), File(LayerGlobal, global, gx), File(LayerUser, user, ux), File(LayerSecrets, secrets, sx),
+		Code(nil), Defaults(), File(LayerGlobal, global, gx), File(LayerUser, user, ux), File(LayerSecrets, secrets, sx),
 		Env(s.Env), CLI(knobs),
 	}
 	if s.Runtime != nil {

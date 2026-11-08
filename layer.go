@@ -7,13 +7,15 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"go.yaml.in/yaml/v3"
 )
 
 // Layer names (spec/README.md, Layers).
 const (
-	LayerDefault    = "default"
+	LayerCode       = "code"
+	LayerSchema     = "schema"
 	LayerGlobal     = "global"
 	LayerUser       = "user"
 	LayerSecrets    = "secrets"
@@ -91,9 +93,39 @@ func (l *layer) Name() string                       { return l.name }
 func (l *layer) Policy() Policy                     { return l.policy }
 func (l *layer) Load(s *Schemas) ([]Setting, error) { return l.load(s) }
 
-// Defaults is the layer of every property's schema default.
+// Code is the layer of values set in code: the baseline under every other layer. It holds each attached
+// module's own code values (Module.Code), then the given values by dotted key, which override them. Values
+// are typed as file values are (int, int64, float64, bool, string; a time.Duration for a duration key). A
+// key marked secret fails here: a credential in code is hardcoded.
+func Code(values map[string]any) Layer {
+	return &layer{name: LayerCode, policy: Policy{RejectSecrets: CodeSecretInCode}, load: func(s *Schemas) ([]Setting, error) {
+		var out []Setting
+		for _, mod := range sortedKeys(s.set.modules) {
+			for _, name := range sortedKeys(s.set.modules[mod].code) {
+				out = append(out, codeSetting(s, s.set.key(mod, name), s.set.modules[mod].code[name]))
+			}
+		}
+		for _, k := range sortedKeys(values) {
+			out = append(out, codeSetting(s, k, values[k]))
+		}
+		return out, nil
+	}}
+}
+
+func codeSetting(s *Schemas, key string, v any) Setting {
+	mod, name, known := s.Lookup(key)
+	if !known {
+		return Setting{Key: key, Err: CodeUnknownKey}
+	}
+	if d, isDuration := v.(time.Duration); isDuration {
+		v = d.String()
+	}
+	return Setting{Key: key, Module: mod, Name: name, Value: v}
+}
+
+// Defaults is the layer of every property's schema default; it overrides Code.
 func Defaults() Layer {
-	return &layer{name: LayerDefault, load: func(s *Schemas) ([]Setting, error) {
+	return &layer{name: LayerSchema, load: func(s *Schemas) ([]Setting, error) {
 		var out []Setting
 		for _, p := range s.set.sortedProps() {
 			if p.hasDefault {

@@ -41,7 +41,7 @@ func engine(t testing.TB, schemas ...string) *Engine {
 		t.Fatal(err)
 	}
 	for _, s := range schemas {
-		if err := e.Attach([]byte(s), "", ""); err != nil {
+		if err := e.Attach(Module{Schema: []byte(s)}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -91,7 +91,7 @@ func TestAttachRejectsBadSchemas(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			e := engine(t)
-			wantCode(t, e.Attach([]byte(s), "", ""), CodeSchemaInvalid)
+			wantCode(t, e.Attach(Module{Schema: []byte(s)}), CodeSchemaInvalid)
 		})
 	}
 }
@@ -102,7 +102,7 @@ func TestAttachAfterResolveFails(t *testing.T) {
 	if _, err := e.Resolve(); err != nil {
 		t.Fatal(err)
 	}
-	wantCode(t, e.Attach([]byte(dbSchema), "", ""), CodeInvalidArgument)
+	wantCode(t, e.Attach(Module{Schema: []byte(dbSchema)}), CodeInvalidArgument)
 	wantCode(t, e.Add(Env(nil)), CodeInvalidArgument)
 }
 
@@ -159,7 +159,7 @@ func TestTypedAccessors(t *testing.T) {
 			t.Fatal("an accessor of the wrong type or an unset key must fail")
 		}
 	}
-	if v, ok := c.Get("demo.http.port"); !ok || v.Layer != "default" || v.Secret {
+	if v, ok := c.Get("demo.http.port"); !ok || v.Layer != LayerSchema || v.Secret {
 		t.Fatalf("Get = %+v, %v", v, ok)
 	}
 	if _, ok := c.Get("demo.http.nope"); ok {
@@ -228,7 +228,7 @@ func TestEmptyFileIsEmptyLayer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v, _ := c.Get("demo.http.port"); v.Layer != "default" {
+	if v, _ := c.Get("demo.http.port"); v.Layer != LayerSchema {
 		t.Fatalf("got %+v", v)
 	}
 }
