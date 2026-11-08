@@ -37,7 +37,7 @@ unenforced.
 
 | Where | Keywords |
 | --- | --- |
-| module | `$schema`, `$id`, `title`, `description`, `x-knobs-module`, `type` (`object`), `additionalProperties` (`false`), `required`, `properties` |
+| module | `$schema`, `$id`, `title`, `description`, `x-knobs-module`, `x-knobs-owner`, `type` (`object`), `additionalProperties` (`false`), `required`, `properties` |
 | property | `type` (`string`, `integer`, `number`, `boolean`), `title`, `description`, `default`, `enum`, `minimum`, `maximum`, `minLength`, `maxLength`, `x-knobs-type` (`duration`), `x-knobs-secret`, `x-knobs-connection`, `x-knobs-env` |
 
 - `minimum` and `maximum` apply to `integer` and `number`; `minLength` and `maxLength` to `string`.
@@ -45,6 +45,9 @@ unenforced.
   `<digits>[.<digits>]<unit>`, unit one of `ns`, `us`, `µs`, `ms`, `s`, `m`, `h`, optionally signed (`1m30s`).
 - A `default` satisfies its own property's rules. A secret has no `default`, and is never `x-knobs-connection`.
 - Two schemas with the same module fail with `module_conflict`.
+- `x-knobs-owner` names the code module that defines the schema (a Go module path, a crate, a package). The master
+  schema keeps it and adds `x-knobs-owner-version`, the version of that module the program links, when the language
+  can tell; an error on one of the module's keys names the owner in its message.
 
 ## Layers
 

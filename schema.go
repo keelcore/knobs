@@ -29,7 +29,7 @@ var (
 
 // The only keywords knobs accepts; every one of them is enforced (spec/README.md, Schemas).
 var (
-	moduleKeywords = keywordSet("$schema", "$id", "title", "description", "x-knobs-module", "type",
+	moduleKeywords = keywordSet("$schema", "$id", "title", "description", "x-knobs-module", "x-knobs-owner", "type",
 		"additionalProperties", "required", "properties")
 	propertyKeywords = keywordSet("type", "title", "description", "default", "enum", "minimum", "maximum",
 		"minLength", "maxLength", "x-knobs-type", "x-knobs-secret", "x-knobs-connection", "x-knobs-env")
@@ -65,6 +65,7 @@ type module struct {
 	props      map[string]*property
 	required   []string
 	raw        map[string]any
+	owner      string
 	code       map[string]any
 	globalPath string
 	userPath   string
@@ -115,6 +116,11 @@ func parseModule(app string, data []byte) (*module, error) {
 		return nil, err
 	}
 	m := &module{name: name, props: map[string]*property{}, raw: raw}
+	if v, present := raw["x-knobs-owner"]; present {
+		if m.owner, _ = v.(string); m.owner == "" {
+			return nil, newError(CodeSchemaInvalid, "schema", modKey, "x-knobs-owner must be a non-empty string")
+		}
+	}
 	props, _ := raw["properties"].(map[string]any)
 	for _, pname := range sortedKeys(props) {
 		p, err := parseProperty(name, pname, props[pname], modKey+"."+pname)
@@ -359,6 +365,9 @@ func (s *schemaSet) master() map[string]any {
 			if k != "$schema" && k != "$id" {
 				cp[k] = v
 			}
+		}
+		if v := ownerVersion(m.owner); v != "" {
+			cp["x-knobs-owner-version"] = v
 		}
 		mods[name] = cp
 	}

@@ -3,3 +3,4 @@
 # Read by scripts/lint/lint-gosec.sh (make lint-gosec). Every other finding of the rule still fails.
 G304	layer.go	data, err := os.ReadFile(path)	the config file path the operator names (File, the path knobs, or the default location)
 G304	internal/conform/conform.go	data, err := os.ReadFile(path)	the schema file path the operator names on the harness command line (--schema)
+G304	knobstest/knobstest.go	committed, err := os.ReadFile(path)	the committed master schema file the calling test names

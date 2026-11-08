@@ -14,6 +14,8 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Fixed
 
+- Every release job reads the tag from `inputs.tag` on a manual run (`GITHUB_REF_NAME` there is the branch), so
+  the canonical `wait-for-publish.sh` waits for the tag.
 - A manual release run takes its tag from `INPUT_TAG`; its `GITHUB_REF_NAME` is the branch.
 - CI passes `PR_AUTHOR` to the PR policy check (its Dependabot exemption) and `HEAD_SHA` to the coverage delta gate.
 - Dependabot leaves the canonical workflows (`scorecard.yml`, `codeql.yml`) alone: their pins come with the
@@ -25,6 +27,14 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- `x-knobs-owner`: a module schema names the code module that defines it; the master schema adds
+  `x-knobs-owner-version` from the binary's build information, and errors on the module's keys name `owner@version`.
+- `knobstest`: `Schema` fails a test when the committed master schema differs from the one the code builds
+  (`KNOBS_WRITE_SCHEMA=1` rewrites it); `SingleMajor` fails when the binary links two major versions of knobs.
+  `knobs.Majors` is its pure check.
+- CI uploads unit-test coverage to Codecov on pushes to `main`, with the organization's `CODECOV_TOKEN`.
+- `docs/guide.md`, `docs/architecture.md`, `docs/conformance.md`, `docs/testing.md`, `docs/dependencies.md`,
+  `docs/ROADMAP.md`.
 - `release.yml` attests the module zip's SLSA build provenance after the GitHub Release (`make pull-release-module`
   fetches the zip and checks it against `SHA256SUMS`); `gh attestation verify knobs-vX.Y.Z.zip -R keelcore/knobs`.
 - The release workflow (`release.yml`, `github-release.yml`): after CI passes on the tagged commit and a reviewer

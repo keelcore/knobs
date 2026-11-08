@@ -71,13 +71,15 @@ jobs:
 
       - run: make publish-go-module
         env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
+          # On a manual run github.ref_name is the branch: every script reads the tag from here.
+          GITHUB_REF_NAME: ${{ inputs.tag || github.ref_name }}
           INPUT_TAG: ${{ inputs.tag }}
           KEELCORE_DEV_ENV: INPUT_TAG
 
       - run: make wait-for-publish ARGS="go"
         env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
+          # On a manual run github.ref_name is the branch: every script reads the tag from here.
+          GITHUB_REF_NAME: ${{ inputs.tag || github.ref_name }}
           INPUT_TAG: ${{ inputs.tag }}
           KEELCORE_DEV_ENV: INPUT_TAG
 
@@ -116,7 +118,8 @@ jobs:
 
       - run: make pull-release-module
         env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
+          # On a manual run github.ref_name is the branch: every script reads the tag from here.
+          GITHUB_REF_NAME: ${{ inputs.tag || github.ref_name }}
           INPUT_TAG: ${{ inputs.tag }}
           KEELCORE_DEV_ENV: INPUT_TAG
 

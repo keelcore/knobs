@@ -28,6 +28,7 @@ type Error struct {
 	Code  string
 	Layer string
 	Key   string
+	Owner string // the owner of the key's module, as path@version, when its schema names one
 	Msg   string
 }
 
@@ -35,6 +36,9 @@ func (e *Error) Error() string {
 	parts := []string{"knobs:", e.Code, "(" + e.Layer + ")"}
 	if e.Key != "" {
 		parts = append(parts, e.Key)
+	}
+	if e.Owner != "" {
+		parts = append(parts, "(owner "+e.Owner+")")
 	}
 	if e.Msg != "" {
 		parts = append(parts, "-", e.Msg)

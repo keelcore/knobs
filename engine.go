@@ -118,15 +118,15 @@ func merge(set *schemaSet, l Layer, settings []Setting, values map[string]Value)
 	pol := l.Policy()
 	for _, st := range settings {
 		if st.Err != "" {
-			return newError(st.Err, l.Name(), st.Key, "")
+			return keyError(set, st.Err, l.Name(), st.Key, "")
 		}
 		p := set.prop(st.Module, st.Name)
 		if p.secret && pol.RejectSecrets != "" {
-			return newError(pol.RejectSecrets, l.Name(), st.Key, "a secret is set only in the secrets file, env or code")
+			return keyError(set, pol.RejectSecrets, l.Name(), st.Key, "a secret is set only in the secrets file, env or runtime")
 		}
 		v, code := convert(p, st)
 		if code != "" {
-			return newError(code, l.Name(), st.Key, "")
+			return keyError(set, code, l.Name(), st.Key, "")
 		}
 		values[st.Key] = Value{Key: st.Key, Value: v, Layer: l.Name(), Secret: p.secret || pol.SecretValues}
 	}
@@ -161,7 +161,16 @@ func checkRequired(set *schemaSet, values map[string]Value) error {
 		return nil
 	}
 	sort.Strings(missing)
-	return newError(CodeMissingRequired, "resolve", missing[0], "no layer sets it")
+	return keyError(set, CodeMissingRequired, "resolve", missing[0], "no layer sets it")
+}
+
+// keyError is an error for a dotted key, naming the owner of the key's module when its schema gives one.
+func keyError(set *schemaSet, code, layer, key, msg string) *Error {
+	e := newError(code, layer, key, msg)
+	if parts := strings.SplitN(key, ".", 3); len(parts) > 1 {
+		e.Owner = ownerRef(set.modules[parts[1]])
+	}
+	return e
 }
 
 // Standard configures AddStandard. Empty paths are resolved from the path knobs
