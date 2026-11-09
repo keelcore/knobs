@@ -71,17 +71,13 @@ jobs:
 
       - run: make publish-go-module
         env:
-          # On a manual run github.ref_name is the branch: every script reads the tag from here.
-          GITHUB_REF_NAME: ${{ inputs.tag || github.ref_name }}
+          # A manual run names its tag here; a tag push needs none (release_tag, scripts/lib/release-tag.sh).
           INPUT_TAG: ${{ inputs.tag }}
-          KEELCORE_DEV_ENV: INPUT_TAG
 
       - run: make wait-for-publish ARGS="go"
         env:
-          # On a manual run github.ref_name is the branch: every script reads the tag from here.
-          GITHUB_REF_NAME: ${{ inputs.tag || github.ref_name }}
+          # A manual run names its tag here; a tag push needs none (release_tag, scripts/lib/release-tag.sh).
           INPUT_TAG: ${{ inputs.tag }}
-          KEELCORE_DEV_ENV: INPUT_TAG
 
   # ---------------------------------------------------------------------------
   # GitHub Release — the published module's assets, signed, and the release notes; rerunnable for
@@ -120,10 +116,8 @@ jobs:
         env:
           # GitHub can refuse anonymous release downloads; the job's read-only token authenticates them.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # On a manual run github.ref_name is the branch: every script reads the tag from here.
-          GITHUB_REF_NAME: ${{ inputs.tag || github.ref_name }}
+          # A manual run names its tag here; a tag push needs none (release_tag, scripts/lib/release-tag.sh).
           INPUT_TAG: ${{ inputs.tag }}
-          KEELCORE_DEV_ENV: INPUT_TAG
 
       - name: Generate SLSA provenance attestation
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2

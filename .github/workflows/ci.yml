@@ -61,7 +61,6 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          GITHUB_HEAD_REF: ${{ github.head_ref }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: make check-pr-policy
@@ -403,6 +402,35 @@ jobs:
           submodules: recursive
       - name: BATS suites
         run: make test-integration
+      - run: make check-clean-tree
+
+  # ---------------------------------------------------------------------------
+  # Manual release tag — a dispatch from main runs in a manual release's context: GitHub sets
+  # GITHUB_REF_NAME to the branch and GITHUB_REF_TYPE to branch, and only INPUT_TAG names the tag.
+  # The release's read-only steps run against the published v0.8.2, so a manual release never
+  # takes the branch for its tag.
+  # ---------------------------------------------------------------------------
+  manual-release-tag:
+    name: Manual release tag
+    needs: dev-image
+    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && needs.dev-image.result != 'failure' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - run: make wait-for-publish ARGS="go"
+        env:
+          INPUT_TAG: v0.8.2
+          WAIT_TIMEOUT: '120'
+      - run: make pull-release-module
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_TAG: v0.8.2
       - run: make check-clean-tree
 
   # ---------------------------------------------------------------------------
