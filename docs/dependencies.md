@@ -4,8 +4,10 @@
 
 | Module | Why |
 | --- | --- |
-| standard library | everything but YAML |
-| `go.yaml.in/yaml/v3` | YAML 1.2 decoding of the configuration files; the YAML organization's continuation of `gopkg.in/yaml.v3` |
+| standard library | everything but YAML and JSON Schema |
+| `go.yaml.in/yaml/v3` | YAML 1.2 decoding of the configuration files and YAML schemas; the YAML organization's continuation of `gopkg.in/yaml.v3` |
+| `github.com/santhosh-tekuri/jsonschema/v6` | JSON Schema validation (drafts 2019-09 and 2020-12) of every schema and every value, and the check that a schema holds no keyword its draft does not define |
+| `golang.org/x/text` | indirect: `jsonschema/v6`'s localized error messages |
 | `golang.org/x/sys` | Windows only: the secrets file's owner and DACL (`perm_windows.go`) |
 | `github.com/hectane/go-acl` | Windows tests only: files with a given DACL |
 

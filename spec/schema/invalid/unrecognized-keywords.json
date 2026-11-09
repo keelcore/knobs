@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "x-knobs-module": "bad",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "port": {
+      "type": "integer",
+      "minimun": 1
+    }
+  },
+  "properties": {
+    "name": {
+      "type": "string",
+      "patern": "^[a-z]+$",
+      "pattern": "^[a-z]+$"
+    },
+    "ports": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "maxium": 65535
+      }
+    },
+    "port": {
+      "$ref": "#/$defs/port"
+    }
+  }
+}

@@ -6,7 +6,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "pattern": "^[a-z]+$"
+      "patern": "^[a-z]+$"
     }
   }
 }

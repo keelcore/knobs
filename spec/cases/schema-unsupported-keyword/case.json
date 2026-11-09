@@ -1,5 +1,5 @@
 {
-  "description": "A schema using a keyword outside the supported set fails.",
+  "description": "A schema using a keyword its draft does not define fails, naming the keyword and where it is.",
   "args": [
     "--app",
     "demo",
@@ -11,7 +11,12 @@
     "error": {
       "code": "schema_invalid",
       "layer": "schema",
-      "key": "demo.bad.name"
+      "keywords": [
+        {
+          "keyword": "patern",
+          "location": "#/properties/name"
+        }
+      ]
     }
   }
 }

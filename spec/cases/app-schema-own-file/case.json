@@ -1,0 +1,28 @@
+{
+  "description": "An application schema's own file holds its modules directly, with no application root; the harness names it by the application.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml",
+    "--global",
+    "global.yaml",
+    "--module-global",
+    "demo=document.yaml"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.listeners.http.enabled": {
+        "value": false,
+        "layer": "global",
+        "secret": false
+      },
+      "demo.listeners.http.port": {
+        "value": 8080,
+        "layer": "schema",
+        "secret": false
+      }
+    }
+  }
+}

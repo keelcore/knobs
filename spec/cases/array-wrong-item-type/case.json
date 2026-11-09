@@ -1,0 +1,19 @@
+{
+  "description": "An array item of the wrong type fails on the array's key.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_type",
+      "layer": "global",
+      "key": "demo.sidecar.header_policy.forward"
+    }
+  }
+}

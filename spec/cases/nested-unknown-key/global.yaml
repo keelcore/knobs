@@ -1,0 +1,4 @@
+demo:
+  listeners:
+    http:
+      bogus: 1

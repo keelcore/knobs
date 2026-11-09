@@ -14,6 +14,7 @@ const (
 	CodeOutOfRange             = "out_of_range"
 	CodeNotInEnum              = "not_in_enum"
 	CodeInvalidLength          = "invalid_length"
+	CodeInvalidValue           = "invalid_value" // any other keyword the value breaks (pattern, multipleOf, ...)
 	CodeSecretInPlainFile      = "secret_in_plain_file"
 	CodeSecretOnCLI            = "secret_on_cli"
 	CodeSecretsFilePermissions = "secrets_file_permissions"
@@ -25,11 +26,19 @@ const (
 // Error is a configuration error: what went wrong (Code), in which layer, and for which dotted
 // key, when it concerns one.
 type Error struct {
-	Code  string
-	Layer string
-	Key   string
-	Owner string // the owner of the key's module, as path@version, when its schema names one
-	Msg   string
+	Code     string
+	Layer    string
+	Key      string
+	Owner    string // the owner of the key's module, as path@version, when its schema names one
+	Msg      string
+	Keywords []Keyword // every unrecognized keyword, when a schema fails for them
+}
+
+// Keyword is an unrecognized keyword of a schema: its name, and the location of the schema
+// object holding it, as a JSON Pointer fragment ("#/properties/port").
+type Keyword struct {
+	Name     string
+	Location string
 }
 
 func (e *Error) Error() string {

@@ -1,0 +1,7 @@
+demo:
+  listeners:
+    http:
+      port: 9000
+  sidecar:
+    header_policy:
+      forward: [x-request-id, traceparent]

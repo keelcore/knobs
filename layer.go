@@ -4,9 +4,9 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"slices"
 	"sort"
 	"strings"
-	"time"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -55,9 +55,11 @@ type Schemas struct{ set *schemaSet }
 // App is the application name.
 func (s *Schemas) App() string { return s.set.app }
 
-// Lookup splits a dotted key into module and name when the schemas define it.
+// Lookup splits a dotted key into module and name when the schemas define it. The name of a knob
+// in a nested object is its dotted path inside the module (demo.listeners.http.port: module
+// listeners, name http.port).
 func (s *Schemas) Lookup(key string) (module, name string, ok bool) {
-	parts := strings.Split(key, ".")
+	parts := strings.SplitN(key, ".", 3)
 	if len(parts) != 3 || parts[0] != s.set.app || s.set.prop(parts[1], parts[2]) == nil {
 		return "", "", false
 	}
@@ -65,12 +67,12 @@ func (s *Schemas) Lookup(key string) (module, name string, ok bool) {
 }
 
 // EnvName is the environment variable a property reads: its x-knobs-env, else the upper case
-// <APP>_<MODULE>_<NAME>.
+// <APP>_<MODULE>_<NAME>, each dot of a nested name an underscore.
 func (s *Schemas) EnvName(module, name string) string {
 	if p := s.set.prop(module, name); p != nil && p.env != "" {
 		return p.env
 	}
-	return strings.ToUpper(s.set.app + "_" + module + "_" + name)
+	return strings.ToUpper(s.set.app + "_" + module + "_" + strings.ReplaceAll(name, ".", "_"))
 }
 
 // Keys lists every defined property as module and name, in key order.
@@ -93,15 +95,19 @@ func (l *layer) Policy() Policy                     { return l.policy }
 func (l *layer) Load(s *Schemas) ([]Setting, error) { return l.load(s) }
 
 // Code is the layer of values set in code: the baseline under every other layer. It holds each attached
-// module's own code values (Module.Code), then the given values by dotted key, which override them. Values
-// are typed as file values are (int, int64, float64, bool, string; a time.Duration for a duration key). A
-// key marked secret fails here: a credential in code is hardcoded.
+// Module's own code values (Module.Code), then the given values by dotted key, which override them. Values
+// are typed as file values are (int, int64, float64, bool, string, slices and string-keyed maps of them; a
+// time.Duration for a duration key). A key marked secret fails here: a credential in code is hardcoded.
 func Code(values map[string]any) Layer {
 	return &layer{name: LayerCode, policy: Policy{RejectSecrets: CodeSecretInCode}, load: func(s *Schemas) ([]Setting, error) {
 		var out []Setting
-		for _, mod := range sortedKeys(s.set.modules) {
-			for _, name := range sortedKeys(s.set.modules[mod].code) {
-				out = append(out, codeSetting(s, s.set.key(mod, name), s.set.modules[mod].code[name]))
+		for _, src := range s.set.sources {
+			for _, k := range sortedKeys(src.code) {
+				key := joinKey(s.set.app, k)
+				if src.single {
+					key = s.set.key(src.modules[0], k)
+				}
+				out = append(out, codeSetting(s, key, src.code[k]))
 			}
 		}
 		for _, k := range sortedKeys(values) {
@@ -116,10 +122,7 @@ func codeSetting(s *Schemas, key string, v any) Setting {
 	if !known {
 		return Setting{Key: key, Err: CodeUnknownKey}
 	}
-	if d, isDuration := v.(time.Duration); isDuration {
-		v = d.String()
-	}
-	return Setting{Key: key, Module: mod, Name: name, Value: v}
+	return Setting{Key: key, Module: mod, Name: name, Value: normalizeValue(v)}
 }
 
 // Defaults is the layer of every property's schema default; it overrides Code.
@@ -154,14 +157,18 @@ func File(name, path string, explicit bool) Layer {
 	return l
 }
 
-// moduleFile is a module's own file in the layer named name: its mapping is the module's directly.
-func moduleFile(name, module, path string) Layer {
+// sourceFile is an attached Module's own file in the layer named name: it holds the module's mapping
+// directly, or, for an application schema, the mapping of its modules.
+func sourceFile(name string, src *source, path string) Layer {
 	return &layer{name: name, policy: Policy{RejectSecrets: CodeSecretInPlainFile}, load: func(s *Schemas) ([]Setting, error) {
 		doc, err := readYAML(name, path, false)
 		if err != nil || doc == nil {
 			return nil, err
 		}
-		return moduleSettings(s, module, doc), nil
+		if src.single {
+			return moduleSettings(s, src.modules[0], doc), nil
+		}
+		return modulesSettings(s, doc.(map[string]any), func(mod string) bool { return slices.Contains(src.modules, mod) }), nil
 	}}
 }
 
@@ -211,30 +218,48 @@ func appSettings(s *Schemas, doc any) []Setting {
 			out = append(out, Setting{Key: root, Err: CodeInvalidType})
 			continue
 		}
-		for mod, mv := range mods {
-			if _, known := s.set.modules[mod]; !known {
-				out = append(out, Setting{Key: root + "." + mod, Err: CodeUnknownKey})
-				continue
-			}
-			out = append(out, moduleSettings(s, mod, mv)...)
+		out = append(out, modulesSettings(s, mods, func(string) bool { return true })...)
+	}
+	return out
+}
+
+// modulesSettings flattens a mapping of modules; a module that is not attached, or that owned says
+// this mapping may not set, is an unknown key.
+func modulesSettings(s *Schemas, mods map[string]any, owned func(string) bool) []Setting {
+	var out []Setting
+	for mod, mv := range mods {
+		if _, known := s.set.modules[mod]; !known || !owned(mod) {
+			out = append(out, Setting{Key: s.set.key(mod, ""), Err: CodeUnknownKey})
+			continue
 		}
+		out = append(out, moduleSettings(s, mod, mv)...)
 	}
 	return out
 }
 
 // moduleSettings flattens one module's mapping.
 func moduleSettings(s *Schemas, mod string, v any) []Setting {
+	return objectSettings(s, s.set.modules[mod], "", v)
+}
+
+// objectSettings flattens the mapping of the module's object at path, descending into nested
+// objects: each knob is one setting, whatever its type.
+func objectSettings(s *Schemas, m *module, path string, v any) []Setting {
 	names, ok := v.(map[string]any)
 	if !ok {
-		return []Setting{{Key: s.set.app + "." + mod, Err: CodeInvalidType}}
+		return []Setting{{Key: s.set.key(m.name, path), Err: CodeInvalidType}}
 	}
 	var out []Setting
 	for name, value := range names {
-		st := Setting{Key: s.set.key(mod, name), Module: mod, Name: name, Value: value}
-		if s.set.prop(mod, name) == nil {
-			st = Setting{Key: st.Key, Err: CodeUnknownKey}
+		sub := joinKey(path, name)
+		switch {
+		case m.props[sub] != nil:
+			out = append(out, Setting{Key: s.set.key(m.name, sub), Module: m.name, Name: sub, Value: value})
+		case m.branches[sub]:
+			out = append(out, objectSettings(s, m, sub, value)...)
+		default:
+			out = append(out, Setting{Key: s.set.key(m.name, sub), Err: CodeUnknownKey})
 		}
-		out = append(out, st)
 	}
 	return out
 }

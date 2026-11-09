@@ -1,0 +1,19 @@
+{
+  "description": "Every JSON Schema keyword is enforced: a value breaking pattern fails with invalid_value.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml",
+    "--knob",
+    "demo.sidecar.prefix=Edge"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_value",
+      "layer": "cli",
+      "key": "demo.sidecar.prefix"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "description": "A schema that is not valid against its dialect's metaschema fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/invalid/metaschema.json"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "schema_invalid",
+      "layer": "schema"
+    }
+  }
+}

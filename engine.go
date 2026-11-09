@@ -1,6 +1,7 @@
 package knobs
 
 import (
+	"slices"
 	"sort"
 	"strings"
 )
@@ -23,10 +24,14 @@ func New(app string) (*Engine, error) {
 }
 
 // Module is everything one Go module gives the engine about its own knobs, so main only attaches it:
-// its JSON Schema (which names the module with x-knobs-module), its code values keyed by its own knob
-// names (the code layer, under every other), and its own files, holding its mapping directly, which
-// apply right after the layer of the same name (LayerGlobal, LayerUser); either path may be empty or
-// missing.
+// its JSON Schema, JSON or YAML, in any draft the validator supports (2020-12 when it names none);
+// its code values (the code layer, under every other); and its own files, which apply right after the
+// layer of the same name (LayerGlobal, LayerUser); either path may be empty or missing.
+//
+// A schema with x-knobs-module is one module: its code values are keyed by the module's knob names
+// (port, http.port) and its files hold the module's mapping directly. A schema without it is an
+// application schema, each of whose properties is a module: its code values are keyed by
+// <module>.<name> and its files hold the mapping of modules directly, with no application root.
 type Module struct {
 	Schema               []byte
 	Code                 map[string]any
@@ -47,15 +52,22 @@ func (e *Engine) Attach(modules ...Module) error {
 }
 
 func (e *Engine) attach(mod Module) error {
-	m, err := parseModule(e.set.app, mod.Schema)
+	mods, single, err := parseSchema(e.set.app, mod.Schema)
 	if err != nil {
 		return err
 	}
-	if _, dup := e.set.modules[m.name]; dup {
-		return newError(CodeModuleConflict, "schema", e.set.app+"."+m.name, "two schemas for one module")
+	src := &source{single: single, code: mod.Code, globalPath: mod.GlobalPath, userPath: mod.UserPath}
+	for _, m := range mods {
+		if _, dup := e.set.modules[m.name]; dup {
+			return newError(CodeModuleConflict, "schema", e.set.key(m.name, ""), "two schemas for one module")
+		}
+		src.modules = append(src.modules, m.name)
 	}
-	m.code, m.globalPath, m.userPath = mod.Code, mod.GlobalPath, mod.UserPath
-	e.set.modules[m.name] = m
+	for _, m := range mods {
+		m.src = src
+		e.set.modules[m.name] = m
+	}
+	e.set.sources = append(e.set.sources, src)
 	return nil
 }
 
@@ -86,26 +98,26 @@ func (e *Engine) Resolve() (*Config, error) {
 			return nil, err
 		}
 	}
-	if err := checkRequired(e.set, values); err != nil {
+	if err := checkModules(e.set, values); err != nil {
 		return nil, err
 	}
 	return &Config{set: e.set, values: values}, nil
 }
 
-// withModuleFiles is the layer list with each module's own files right after the layer of the
-// same name, modules in name order.
+// withModuleFiles is the layer list with each attached Module's own files right after the layer of
+// the same name, in the order of each one's first module name.
 func (e *Engine) withModuleFiles() []Layer {
+	srcs := slices.Clone(e.set.sources)
+	sort.Slice(srcs, func(i, j int) bool { return srcs[i].modules[0] < srcs[j].modules[0] })
 	var out []Layer
-	mods := sortedKeys(e.set.modules)
 	for _, l := range e.layers {
 		out = append(out, l)
-		for _, name := range mods {
-			m := e.set.modules[name]
+		for _, src := range srcs {
 			switch {
-			case l.Name() == LayerGlobal && m.globalPath != "":
-				out = append(out, moduleFile(LayerGlobal, name, m.globalPath))
-			case l.Name() == LayerUser && m.userPath != "":
-				out = append(out, moduleFile(LayerUser, name, m.userPath))
+			case l.Name() == LayerGlobal && src.globalPath != "":
+				out = append(out, sourceFile(LayerGlobal, src, src.globalPath))
+			case l.Name() == LayerUser && src.userPath != "":
+				out = append(out, sourceFile(LayerUser, src, src.userPath))
 			}
 		}
 	}
@@ -144,23 +156,7 @@ func convert(p *property, st Setting) (any, string) {
 	if code != "" {
 		return nil, code
 	}
-	return v, checkRules(p, v)
-}
-
-func checkRequired(set *schemaSet, values map[string]Value) error {
-	var missing []string
-	for _, m := range set.modules {
-		for _, name := range m.required {
-			if k := set.key(m.name, name); values[k].Layer == "" {
-				missing = append(missing, k)
-			}
-		}
-	}
-	if len(missing) == 0 {
-		return nil
-	}
-	sort.Strings(missing)
-	return keyError(set, CodeMissingRequired, "resolve", missing[0], "no layer sets it")
+	return v, p.check(v)
 }
 
 // keyError is an error for a dotted key, naming the owner of the key's module when its schema gives one.

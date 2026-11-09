@@ -73,14 +73,17 @@ func (c *Config) connectionValue(key, text string, authorized bool) (any, Outcom
 	}
 	v, code := coerceText(p, text)
 	if code == "" {
-		code = checkRules(p, v)
+		code = p.check(v)
 	}
 	switch code {
 	case "":
 		return v, OutcomeApplied
 	case CodeOutOfRange:
-		clamped, _ := clampNumber(p, v)
-		return clamped, OutcomeClamped
+		// Clamped to minimum or maximum, the value must pass every rule, or it is malformed
+		// (an exclusive bound, multipleOf).
+		if clamped, _ := clampNumber(p, v); p.check(clamped) == "" {
+			return clamped, OutcomeClamped
+		}
 	}
 	return nil, OutcomeRejectedMalformed
 }

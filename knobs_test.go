@@ -73,9 +73,9 @@ func TestAttachRejectsBadSchemas(t *testing.T) {
 		"open module":          `{"x-knobs-module": "m", "type": "object", "properties": {}}`,
 		"bad property name":    `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"Port": {"type": "integer"}}}`,
 		"property not object":  `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": 1}}`,
-		"unknown type":         `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "array"}}}`,
-		"bounds on string":     `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "string", "minimum": 1}}}`,
-		"length on integer":    `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "integer", "maxLength": 1}}}`,
+		"unknown type":         `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "strnig"}}}`,
+		"misspelled bound":     `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "integer", "minimun": 1}}}`,
+		"misspelled length":    `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "string", "maxLenght": 1}}}`,
 		"duration on integer":  `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "integer", "x-knobs-type": "duration"}}}`,
 		"unknown knobs type":   `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "string", "x-knobs-type": "ip"}}}`,
 		"default out of range": `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "integer", "default": 9, "maximum": 5}}}`,
@@ -87,7 +87,7 @@ func TestAttachRejectsBadSchemas(t *testing.T) {
 		"flag not boolean":     `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "string", "x-knobs-secret": "yes"}}}`,
 		"min not number":       `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "integer", "minimum": "1"}}}`,
 		"length not integer":   `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {"p": {"type": "string", "minLength": 1.5}}}`,
-		"module keyword":       `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {}, "patternProperties": {}}`,
+		"module keyword":       `{"x-knobs-module": "m", "type": "object", "additionalProperties": false, "properties": {}, "patternProperty": {}}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			e := engine(t)

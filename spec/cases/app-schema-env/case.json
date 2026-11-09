@@ -1,0 +1,46 @@
+{
+  "description": "A nested key reads <APP>_<MODULE>_<PATH>; an array reads comma-separated text, each item converted to the item type.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml",
+    "--env",
+    "DEMO_LISTENERS_HTTP_PORT=9001",
+    "--env",
+    "DEMO_SIDECAR_HEADER_POLICY_FORWARD=a, b",
+    "--env",
+    "DEMO_SIDECAR_HEADER_POLICY_PORTS=80,443"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.listeners.http.enabled": {
+        "value": true,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.listeners.http.port": {
+        "value": 9001,
+        "layer": "env",
+        "secret": false
+      },
+      "demo.sidecar.header_policy.forward": {
+        "value": [
+          "a",
+          "b"
+        ],
+        "layer": "env",
+        "secret": false
+      },
+      "demo.sidecar.header_policy.ports": {
+        "value": [
+          80,
+          443
+        ],
+        "layer": "env",
+        "secret": false
+      }
+    }
+  }
+}

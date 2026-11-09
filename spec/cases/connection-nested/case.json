@@ -1,0 +1,33 @@
+{
+  "description": "A nested connection-overridable key clamps like any other.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml",
+    "--connection",
+    "demo.listeners.http.port=70000",
+    "--authorized"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.listeners.http.enabled": {
+        "value": true,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.listeners.http.port": {
+        "value": 65535,
+        "layer": "connection",
+        "secret": false
+      }
+    },
+    "attempts": [
+      {
+        "key": "demo.listeners.http.port",
+        "outcome": "clamped"
+      }
+    ]
+  }
+}

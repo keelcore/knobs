@@ -14,6 +14,18 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Changed
 
+- Schemas and every value are validated by `github.com/santhosh-tekuri/jsonschema/v6` instead of knobs' own subset
+  parser (`schema.go`, now gone): every keyword of the schema's dialect is enforced, in draft 2019-09 or 2020-12, and
+  a schema may be JSON or YAML. A schema using a keyword outside the old fixed set (`pattern`, `items`,
+  `multipleOf`, ...) now loads and is enforced instead of failing with `schema_invalid`; an `x-knobs-` keyword knobs
+  does not define, or a schema invalid against its metaschema, still fails. Each module is also validated whole after
+  the process layers merge, so `required`, `dependentRequired` and `if`/`then` hold across keys (#12).
+- A keyword a schema's draft does not define (a misspelling such as `patern`), at any depth, fails the schema with
+  `schema_invalid` instead of being ignored, so no rule written in a schema goes unenforced. The error lists every
+  such keyword with the location of the schema object holding it, in `Error.Keywords` (new type `Keyword`) and in the
+  conformance harness's error object (`keywords`). Draft 4, 6 and 7 schemas fail with `schema_invalid`: knobs can
+  check every keyword of 2019-09 and 2020-12 only (#12).
+
 - `.standards` refreshed from v0.10.24 to v0.11.0: `scripts/dev/run.sh` passes into the dev image each name the script
   it runs imports (keelcore/standards#22); `build-native.sh` records the module root package as `.`
   (keelcore/standards#23); `test-native-integrity.sh` puts the native build on `PATH` in the host's own form and sets
@@ -57,6 +69,13 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- Nested objects and arrays in schemas (#12). A property with `properties` of its own is a nested object; any other
+  property is a knob of any type, keyed by its dotted path (`demo.listeners.http.port`, env
+  `DEMO_LISTENERS_HTTP_PORT`) through every layer. Array text from env, cli, runtime and connection is a JSON list or
+  comma-separated items. An application schema (one with no `x-knobs-module`) attaches each of its properties as a
+  module, with code values keyed `<module>.<name>` and own files holding the modules directly, so keel's
+  `pkg/config/schema.yaml` loads unchanged. New: `TypeArray`, `TypeObject`, `TypeAny`, `Config.List`, and the error
+  code `invalid_value` for a value breaking any keyword without its own code (`pattern`, `multipleOf`, ...).
 - CI-only checks in a new repository built from the commit (`scripts/lib/scratch-repo.sh`), on a `workflow_dispatch`
   of `ci.yml`: Manual release tag (`make test-manual-release`: `wait-for-publish` and `pull-release-module` take
   v0.8.2 from `INPUT_TAG` on a branch run, and fail without it), and the native build and tests

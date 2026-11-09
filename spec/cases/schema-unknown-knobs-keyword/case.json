@@ -1,0 +1,17 @@
+{
+  "description": "A keyword in the x-knobs- vocabulary that knobs does not define fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/invalid/unknown-knobs-keyword.json"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "schema_invalid",
+      "layer": "schema",
+      "key": "demo.bad.name"
+    }
+  }
+}

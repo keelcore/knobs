@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/keelcore/knobs"
+	"go.yaml.in/yaml/v3"
 )
 
 // invocation is one parsed command line.
@@ -39,6 +40,13 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		obj := map[string]any{"code": ke.Code, "layer": ke.Layer}
 		if ke.Key != "" {
 			obj["key"] = ke.Key
+		}
+		if len(ke.Keywords) > 0 {
+			list := make([]map[string]string, len(ke.Keywords))
+			for i, k := range ke.Keywords {
+				list[i] = map[string]string{"keyword": k.Name, "location": k.Location}
+			}
+			obj["keywords"] = list
 		}
 		out = map[string]any{"error": obj}
 		_, _ = fmt.Fprintln(stderr, ke.Error())
@@ -106,7 +114,7 @@ func build(inv *invocation) (*knobs.Engine, error) {
 		if err != nil {
 			return nil, &knobs.Error{Code: knobs.CodeFileNotFound, Layer: "schema", Msg: err.Error()}
 		}
-		mod := moduleOf(data)
+		mod := moduleOf(data, inv.app)
 		if err := e.Attach(knobs.Module{Schema: data, GlobalPath: inv.moduleGlobal[mod], UserPath: inv.moduleUser[mod]}); err != nil {
 			return nil, err
 		}
@@ -125,13 +133,16 @@ func build(inv *invocation) (*knobs.Engine, error) {
 	return e, e.Add(layers...)
 }
 
-// moduleOf reads a schema's x-knobs-module, to route its module files; Attach checks the rest.
-func moduleOf(data []byte) string {
+// moduleOf names a schema's own files: its x-knobs-module, or the application for an application
+// schema, which has none. Attach checks the rest.
+func moduleOf(data []byte, app string) string {
 	var s struct {
-		Module string `json:"x-knobs-module"`
+		Module *string `yaml:"x-knobs-module"`
 	}
-	_ = json.Unmarshal(data, &s)
-	return s.Module
+	if yaml.Unmarshal(data, &s) != nil || s.Module == nil {
+		return app
+	}
+	return *s.Module
 }
 
 func parse(args []string) (*invocation, error) {

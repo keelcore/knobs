@@ -1,0 +1,35 @@
+{
+  "description": "A nested key is set on the command line by its dotted key; an array as a JSON list.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml",
+    "--knob",
+    "demo.listeners.http.port=9443",
+    "--knob",
+    "demo.sidecar.header_policy.ports=[8443]"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.listeners.http.enabled": {
+        "value": true,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.listeners.http.port": {
+        "value": 9443,
+        "layer": "cli",
+        "secret": false
+      },
+      "demo.sidecar.header_policy.ports": {
+        "value": [
+          8443
+        ],
+        "layer": "cli",
+        "secret": false
+      }
+    }
+  }
+}

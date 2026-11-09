@@ -1,0 +1,42 @@
+$schema: https://json-schema.org/draft/2019-09/schema
+title: demo
+description: 'Test schema: an application schema in YAML; each property is a module, with nested objects and arrays.'
+type: object
+additionalProperties: false
+properties:
+  listeners:
+    type: object
+    additionalProperties: false
+    properties:
+      http:
+        type: object
+        additionalProperties: false
+        properties:
+          enabled:
+            type: boolean
+            default: true
+          port:
+            type: integer
+            default: 8080
+            minimum: 1
+            maximum: 65535
+            x-knobs-connection: true
+  sidecar:
+    type: object
+    additionalProperties: false
+    properties:
+      prefix:
+        type: string
+        pattern: '^[a-z_]+$'
+      header_policy:
+        type: object
+        additionalProperties: false
+        properties:
+          forward:
+            type: array
+            items:
+              type: string
+          ports:
+            type: array
+            items:
+              type: integer

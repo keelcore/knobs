@@ -1,0 +1,30 @@
+{
+  "description": "Every keyword the schema's draft does not define fails the schema; the error lists each one with the location of the schema object holding it.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/invalid/unrecognized-keywords.json"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "schema_invalid",
+      "layer": "schema",
+      "keywords": [
+        {
+          "keyword": "minimun",
+          "location": "#/$defs/port"
+        },
+        {
+          "keyword": "patern",
+          "location": "#/properties/name"
+        },
+        {
+          "keyword": "maxium",
+          "location": "#/properties/ports/items"
+        }
+      ]
+    }
+  }
+}

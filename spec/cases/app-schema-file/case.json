@@ -1,0 +1,34 @@
+{
+  "description": "A file sets nested keys and arrays, which keep their YAML types.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.listeners.http.enabled": {
+        "value": true,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.listeners.http.port": {
+        "value": 9000,
+        "layer": "global",
+        "secret": false
+      },
+      "demo.sidecar.header_policy.forward": {
+        "value": [
+          "x-request-id",
+          "traceparent"
+        ],
+        "layer": "global",
+        "secret": false
+      }
+    }
+  }
+}

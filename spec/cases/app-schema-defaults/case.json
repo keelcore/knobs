@@ -1,0 +1,24 @@
+{
+  "description": "An application schema (no x-knobs-module, YAML, draft 2019-09) attaches each of its properties as a module; nested keys take their defaults.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.listeners.http.enabled": {
+        "value": true,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.listeners.http.port": {
+        "value": 8080,
+        "layer": "schema",
+        "secret": false
+      }
+    }
+  }
+}

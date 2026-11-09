@@ -1,0 +1,25 @@
+{
+  "description": "dump nests a nested key under each of its objects.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml",
+    "--knob",
+    "demo.sidecar.prefix=edge"
+  ],
+  "command": "dump",
+  "expect": {
+    "demo": {
+      "listeners": {
+        "http": {
+          "enabled": true,
+          "port": 8080
+        }
+      },
+      "sidecar": {
+        "prefix": "edge"
+      }
+    }
+  }
+}

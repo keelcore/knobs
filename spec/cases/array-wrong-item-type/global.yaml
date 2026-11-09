@@ -1,0 +1,4 @@
+demo:
+  sidecar:
+    header_policy:
+      forward: [1]

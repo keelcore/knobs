@@ -2,6 +2,7 @@ package knobs
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -10,8 +11,8 @@ import (
 // Redacted replaces a secret value in every dump, audit record and printed form.
 const Redacted = "<redacted>"
 
-// Value is one resolved key: its value (int64, float64, bool or string), the layer that set it,
-// and whether it is secret.
+// Value is one resolved key: its value (int64, float64, bool, string, []any or map[string]any), the
+// layer that set it, and whether it is secret.
 type Value struct {
 	Key    string
 	Value  any
@@ -71,18 +72,12 @@ func (c *Config) Values() []Value {
 	return out
 }
 
-// Dump is the configuration as a tree rooted at the application, secrets as Redacted.
+// Dump is the configuration as a tree rooted at the application, each nested key under its
+// objects, secrets as Redacted.
 func (c *Config) Dump() map[string]any {
 	mods := map[string]any{}
 	for _, v := range c.Values() {
-		parts := strings.SplitN(v.Key, ".", 3)
-		mod, name := parts[1], parts[2]
-		m, ok := mods[mod].(map[string]any)
-		if !ok {
-			m = map[string]any{}
-			mods[mod] = m
-		}
-		m[name] = v.Display()
+		place(mods, strings.SplitN(v.Key, ".", 2)[1], v.Display())
 	}
 	return map[string]any{c.set.app: mods}
 }
@@ -150,6 +145,15 @@ func (c *Config) Duration(module, name string) (time.Duration, error) {
 		return 0, err
 	}
 	return time.ParseDuration(v.(string))
+}
+
+// List returns an array value, as a copy.
+func (c *Config) List(module, name string) ([]any, error) {
+	v, err := c.lookup(module, name, TypeArray)
+	if err != nil {
+		return nil, err
+	}
+	return slices.Clone(v.([]any)), nil
 }
 
 // Secret returns a secret value, wrapped so it never prints.

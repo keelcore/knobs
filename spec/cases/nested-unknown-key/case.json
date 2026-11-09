@@ -1,0 +1,19 @@
+{
+  "description": "A key under a nested object that the schema does not define fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/app.yaml",
+    "--global",
+    "global.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "unknown_key",
+      "layer": "global",
+      "key": "demo.listeners.http.bogus"
+    }
+  }
+}

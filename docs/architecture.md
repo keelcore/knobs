@@ -9,7 +9,7 @@ repository root.
 | --- | --- | --- |
 | Contract | `spec/README.md`, `spec/schema/`, `spec/cases/` | names, schema keywords, layers, errors, conformance cases |
 | Engine | `engine.go` | `New`, `Attach`, `Add`, `AddStandard`, `Resolve` |
-| Schemas | `schema.go`, `owner.go` | parse and check module schemas, build the master schema, owners and versions |
+| Schemas | `module.go`, `rules.go`, `strict.go`, `owner.go` | read module and application schemas, compile and enforce them with `santhosh-tekuri/jsonschema/v6`, fail any keyword a schema's draft does not define, build the master schema, owners and versions |
 | Layers | `layer.go` | the `Layer` interface and the built-in layers: code, schema, files, env, cli, runtime |
 | Values | `value.go` | text conversion, typed checks, rules, clamping |
 | Configuration | `config.go`, `bind.go`, `secret.go` | the resolved `Config`, typed accessors, binding, `Secret` |
