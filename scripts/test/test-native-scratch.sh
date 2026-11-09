@@ -26,6 +26,7 @@ function main() {
   exec 5>&1
   validate_args "${@:-}"
   on_actions || return 0
+  check_build "${1}"
   local repo
   repo="$(scratch_repo)"
   log "📁 New repository from $(git rev-parse --short HEAD) in ${repo}"
@@ -41,7 +42,7 @@ function log() {
 }
 
 function validate_args() {
-  if [ "${#}" -ne 1 ] || [ ! -f "${1:-}/tests.tsv" ]; then
+  if [ "${#}" -ne 1 ] || [ -z "${1:-}" ]; then
     log '❌ Usage: test-native-scratch.sh target/native/<os>-<arch>   (made by make build-native-scratch)'
     exit 1
   fi
@@ -52,6 +53,13 @@ function on_actions() {
   [ "${GITHUB_ACTIONS}" != 'true' ] || return 0
   log '⏭️  test-native-scratch: skipped outside GitHub Actions'
   return 1
+}
+
+# check_build DIR: DIR holds a native build (its tests.tsv).
+function check_build() {
+  [ ! -f "${1}/tests.tsv" ] || return 0
+  log "❌ ${1} holds no native build (tests.tsv): download the build-native-scratch artifact first"
+  exit 1
 }
 
 # place_build REPO DIR: DIR, at the same path in REPO.
