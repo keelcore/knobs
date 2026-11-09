@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # scripts/test/build-native.local.sh OS ARCH OUT EXT
 # knobs' part of a native build: the conformance harness knobs-conform, cross-built for the platform into
-# OUT/bin/, for the native integrity job (scripts/test/test-native-integrity.local.sh). It also records the
-# module root package's directory in OUT/tests.tsv as ".": the canonical build-native.sh strips the
-# working-directory prefix from subpackage directories only, so the root package keeps the dev image's
-# absolute mount path, which the native host does not have.
+# OUT/bin/, for the native integrity job (scripts/test/test-native-integrity.local.sh). The canonical
+# build-native.sh writes OUT/tests.tsv; this hook leaves it as written.
 
 # bash configuration:
 # 1) Exit script if you try to use an uninitialized variable.
@@ -24,7 +22,6 @@ function main() {
   mkdir -p "${out}/bin"
   GOOS="${os}" GOARCH="${arch}" CGO_ENABLED=0 go build -trimpath -o "${out}/bin/knobs-conform${ext}" ./cmd/knobs-conform
   log "✅ ${out}/bin/knobs-conform${ext}"
-  relative_root "${out}/tests.tsv"
 }
 
 function log() {
@@ -38,15 +35,6 @@ function validate_args() {
     log '❌ Usage: build-native.local.sh OS ARCH OUT [EXT]'
     exit 1
   fi
-}
-
-# relative_root TSV: the row whose directory is the working directory itself names it ".".
-function relative_root() {
-  local -r tsv="${1}"
-  [ -f "${tsv}" ] || return 0
-  awk -F '\t' -v root="${PWD}" 'BEGIN { OFS = "\t" } $1 == root { $1 = "." } { print }' "${tsv}" > "${tsv}.new"
-  mv "${tsv}.new" "${tsv}"
-  log "✅ root package directory recorded as . in ${tsv}"
 }
 
 main "${@:-}"

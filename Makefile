@@ -92,6 +92,20 @@ test-manual-release: | ensure-container
 	@echo "🧪 Checking a manual release's tag in a new repository..."
 	bash scripts/test/test-manual-release.sh
 
+.PHONY: build-native-scratch
+.PHONY: test-native-scratch
+
+## CI-only (ci.yml, workflow_dispatch): make build-native OS ARCH in a new repository from this commit, its
+## tests.tsv checked, the build copied to target/native/. Runs on the host: it calls make.
+build-native-scratch: | ensure-container
+	@echo "🔨 Native build in a new repository..."
+	bash scripts/test/build-native-scratch.sh $(OS) $(ARCH)
+
+## CI-only, on a native runner: make test-native and test-native-integrity DIR in a new repository from this commit
+test-native-scratch:
+	@echo "🧪 Native tests in a new repository..."
+	bash scripts/test/test-native-scratch.sh $(DIR)
+
 .PHONY: build-native-local
 .PHONY: test-native-integrity-local
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # test-manual-release.sh
 # CI-only: a manual (workflow_dispatch) release takes its tag from INPUT_TAG alone, never from the branch it runs
-# on. In a GitHub Actions run from a branch, it builds a new repository from this commit's tracked files, with
-# .standards at its checked-out commit, and there, against the published tag INPUT_TAG names:
+# on. In a GitHub Actions run from a branch, it builds a new repository from this commit (scripts/lib/scratch-repo.sh)
+# and there, against the published tag INPUT_TAG names:
 #   - make wait-for-publish ARGS=go and make pull-release-module succeed and fetch that tag's module zip;
 #   - make pull-release-module with INPUT_TAG unset fails: the branch is never the tag.
 # Skipped outside GitHub Actions. ci.yml's Manual release tag job runs it (make test-manual-release).
@@ -18,11 +18,12 @@ set -o errexit
 # 3) Use the error status of the first failure, rather than that of the last item in a pipeline.
 set -o pipefail
 
+# shellcheck source=../lib/scratch-repo.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/scratch-repo.sh"
+
 declare -rx GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
 declare -rx GITHUB_REF_TYPE="${GITHUB_REF_TYPE:-}"
 declare -rx INPUT_TAG="${INPUT_TAG:-}"
-declare -ra SCRATCH_GIT=(git -c user.name=test-manual-release -c user.email=test-manual-release@invalid
-  -c commit.gpgsign=false -c advice.addEmbeddedRepo=false)
 
 function main() {
   exec 5>&1
@@ -31,6 +32,7 @@ function main() {
   check_context
   local repo
   repo="$(scratch_repo)"
+  log "📁 New repository from $(git rev-parse --short HEAD) in ${repo}"
   check_tag "${repo}"
   check_no_tag "${repo}"
   log "✅ A manual release from a branch takes its tag from INPUT_TAG (${INPUT_TAG}) alone"
@@ -66,27 +68,6 @@ function check_context() {
     log '❌ INPUT_TAG is empty: name a published release tag'
     exit 1
   fi
-}
-
-# scratch_repo: a new repository in a temporary directory holding this commit's tracked files, with .standards
-# as a repository of its own at its checked-out commit; prints its path.
-function scratch_repo() {
-  local dir
-  dir="$(mktemp -d)"
-  log "📁 New repository from $(git rev-parse --short HEAD) in ${dir}"
-  git archive HEAD | tar -x -C "${dir}"
-  mkdir -p "${dir}/.standards"
-  git -C .standards archive HEAD | tar -x -C "${dir}/.standards"
-  commit_all "${dir}/.standards"
-  commit_all "${dir}"
-  printf '%s' "${dir}"
-}
-
-# commit_all DIR: DIR becomes a repository with one commit of everything in it.
-function commit_all() {
-  "${SCRATCH_GIT[@]}" -C "${1}" init -q
-  "${SCRATCH_GIT[@]}" -C "${1}" add -A
-  "${SCRATCH_GIT[@]}" -C "${1}" commit -qm 'test-manual-release: scratch'
 }
 
 # check_tag DIR: the release's read-only steps, run in DIR, resolve INPUT_TAG and fetch its module zip.
