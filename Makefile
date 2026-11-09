@@ -84,6 +84,14 @@ pull-release-module:
 	@echo "⬇️  Fetching the release's module zip..."
 	bash scripts/dev/run.sh bash scripts/release/pull-release-module.sh
 
+.PHONY: test-manual-release
+
+## CI-only (ci.yml, workflow_dispatch from main): in a new repository, a manual release's read-only steps take
+## the tag from INPUT_TAG, never the branch. Runs on the host: it calls make, and make calls the tool image.
+test-manual-release: | ensure-container
+	@echo "🧪 Checking a manual release's tag in a new repository..."
+	bash scripts/test/test-manual-release.sh
+
 .PHONY: build-native-local
 .PHONY: test-native-integrity-local
 

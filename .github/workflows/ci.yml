@@ -407,15 +407,15 @@ jobs:
   # ---------------------------------------------------------------------------
   # Manual release tag — a dispatch from main runs in a manual release's context: GitHub sets
   # GITHUB_REF_NAME to the branch and GITHUB_REF_TYPE to branch, and only INPUT_TAG names the tag.
-  # The release's read-only steps run against the published v0.8.2, so a manual release never
-  # takes the branch for its tag.
+  # In a new repository built from this commit, the release's read-only steps run against the
+  # published v0.8.2, and fail without INPUT_TAG (scripts/test/test-manual-release.sh).
   # ---------------------------------------------------------------------------
   manual-release-tag:
     name: Manual release tag
     needs: dev-image
     if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && needs.dev-image.result != 'failure' }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -423,14 +423,12 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - run: make wait-for-publish ARGS="go"
+      - run: make test-manual-release
         env:
-          INPUT_TAG: v0.8.2
-          WAIT_TIMEOUT: '120'
-      - run: make pull-release-module
-        env:
+          # GitHub can refuse anonymous release downloads; the job's read-only token authenticates them.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_TAG: v0.8.2
+          WAIT_TIMEOUT: '120'
       - run: make check-clean-tree
 
   # ---------------------------------------------------------------------------
