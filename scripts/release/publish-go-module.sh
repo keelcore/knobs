@@ -2,8 +2,8 @@
 # publish-go-module.sh
 # Publishes the Go module of this repository at the release tag: verifies the module builds, then
 # asks the Go checksum database and module proxy for the module at the tag, which records it in both
-# (pkg.go.dev reads the proxy). The module path is read from go.mod. The tag is INPUT_TAG (a manual run,
-# whose ref is its branch), else GITHUB_REF_NAME (a tag push).
+# (pkg.go.dev reads the proxy). The module path is read from go.mod.
+# Tag: release_tag (scripts/lib/release-tag.sh): INPUT_TAG, else GITHUB_REF_NAME on a tag push.
 # knobs-owned: the canonical publish-go.sh publishes the .standards module only.
 
 # bash configuration:
@@ -16,11 +16,14 @@ set -o errexit
 # 3) Use the error status of the first failure, rather than that of the last item in a pipeline.
 set -o pipefail
 
+# shellcheck source=../lib/release-tag.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/release-tag.sh"
+
 function main() {
   exec 5>&1
   validate_args "${@:-}"
   local tag module
-  tag="$(resolve_tag)"
+  tag="$(release_tag)"
   module="$(module_path)"
   log "📦 Publishing ${module}@${tag}"
   verify_build
@@ -40,15 +43,6 @@ function validate_args() {
     log '❌ Error: Unexpected argument'
     exit 1
   fi
-}
-
-function resolve_tag() {
-  local -r tag="${INPUT_TAG:-${GITHUB_REF_NAME:-}}"
-  if [ -z "${tag}" ]; then
-    log '❌ No tag: set INPUT_TAG (manual run) or GITHUB_REF_NAME (tag push)'
-    exit 1
-  fi
-  printf '%s' "${tag}"
 }
 
 function module_path() {

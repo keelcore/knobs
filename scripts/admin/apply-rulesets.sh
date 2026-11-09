@@ -9,8 +9,8 @@
 #             rights does not see bypass_actors; the rest is still compared.
 #   apply     write the committed JSON to the live rulesets (maintainer: needs GH_TOKEN with admin)
 #
-# Env: GH_TOKEN, GITHUB_REPOSITORY (default keelcore/knobs), RULESETS_LIVE_DIR (tests: live
-# rulesets read from <dir>/<file>.json instead of the API).
+# Env: GH_TOKEN (default empty), GITHUB_REPOSITORY (default keelcore/knobs), RULESETS_LIVE_DIR (default empty;
+# tests: live rulesets read from <dir>/<file>.json instead of the API).
 
 # bash configuration:
 # 1) Exit script if you try to use an uninitialized variable.
@@ -22,6 +22,9 @@ set -o errexit
 # 3) Use the error status of the first failure, rather than that of the last item in a pipeline.
 set -o pipefail
 
+declare -rx GH_TOKEN="${GH_TOKEN:-}"
+declare -rx GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-keelcore/knobs}"
+declare -rx RULESETS_LIVE_DIR="${RULESETS_LIVE_DIR:-}"
 readonly RULESETS_DIR='.github/rulesets'
 readonly WORKFLOWS_DIR='.github/workflows'
 readonly API='https://api.github.com'
@@ -84,12 +87,12 @@ function check_contexts() {
 
 function api() {
   local auth=()
-  [ -z "${GH_TOKEN:-}" ] || auth=(-H "Authorization: Bearer ${GH_TOKEN}")
+  [ -z "${GH_TOKEN}" ] || auth=(-H "Authorization: Bearer ${GH_TOKEN}")
   curl -fsSL --max-time 20 ${auth[@]+"${auth[@]}"} -H 'Accept: application/vnd.github+json' "$@"
 }
 
 function repo() {
-  printf '%s' "${GITHUB_REPOSITORY:-keelcore/knobs}"
+  printf '%s' "${GITHUB_REPOSITORY}"
 }
 
 # ruleset_id NAME: the live ruleset's id.
@@ -99,7 +102,7 @@ function ruleset_id() {
 
 # live_ruleset FILE NAME: the live ruleset named NAME.
 function live_ruleset() {
-  if [ -n "${RULESETS_LIVE_DIR:-}" ]; then
+  if [ -n "${RULESETS_LIVE_DIR}" ]; then
     cat "${RULESETS_LIVE_DIR}/$(basename "${1}")"
     return
   fi
@@ -140,7 +143,7 @@ function check_live() {
 }
 
 function apply() {
-  if [ -z "${GH_TOKEN:-}" ]; then
+  if [ -z "${GH_TOKEN}" ]; then
     log '❌ GH_TOKEN (admin on the repository) is required'
     exit 1
   fi

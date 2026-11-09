@@ -2,8 +2,9 @@
 # pull-release-module.sh
 # Fetches the GitHub Release's SHA256SUMS and module zip for the release tag into dist/, from the
 # repository go.mod names (github.com/OWNER/REPO), and fails unless the zip matches its SHA256SUMS
-# line. release.yml attests the zip's build provenance from dist/. The tag is INPUT_TAG (a manual run,
-# whose ref is its branch), else GITHUB_REF_NAME (a tag push).
+# line. release.yml attests the zip's build provenance from dist/.
+# Tag: release_tag (scripts/lib/release-tag.sh): INPUT_TAG, else GITHUB_REF_NAME on a tag push.
+# Environment: GITHUB_TOKEN (default empty).
 
 # bash configuration:
 # 1) Exit script if you try to use an uninitialized variable.
@@ -15,6 +16,10 @@ set -o errexit
 # 3) Use the error status of the first failure, rather than that of the last item in a pipeline.
 set -o pipefail
 
+# shellcheck source=../lib/release-tag.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/release-tag.sh"
+
+declare -rx GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 declare -r DIST='dist'
 declare -ra CURL_OPTS=(--silent --show-error --fail --location --connect-timeout 30 --retry 3)
 
@@ -22,7 +27,7 @@ function main() {
   exec 5>&1
   validate_args "${@:-}"
   local tag base zip
-  tag="$(resolve_tag)"
+  tag="$(release_tag)"
   base="https://$(module_path)/releases/download/${tag}"
   mkdir -p "${DIST}"
   fetch "${base}/SHA256SUMS" "${DIST}/SHA256SUMS"
@@ -44,15 +49,6 @@ function validate_args() {
   fi
 }
 
-function resolve_tag() {
-  local -r tag="${INPUT_TAG:-${GITHUB_REF_NAME:-}}"
-  if [ -z "${tag}" ]; then
-    log '❌ No tag: set INPUT_TAG (manual run) or GITHUB_REF_NAME (tag push)'
-    exit 1
-  fi
-  printf '%s' "${tag}"
-}
-
 function module_path() {
   awk '$1 == "module" { print $2; exit }' go.mod
 }
@@ -63,7 +59,7 @@ function module_path() {
 function fetch() {
   local -r url="${1}" out="${2}"
   log "⬇️  ${url}"
-  if [ -z "${GITHUB_TOKEN:-}" ]; then
+  if [ -z "${GITHUB_TOKEN}" ]; then
     curl "${CURL_OPTS[@]}" -o "${out}" "${url}"
     return 0
   fi

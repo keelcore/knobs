@@ -17,12 +17,12 @@ setup() {
     chmod +x "${WORK}/bin/${tool}"
   done
   export PATH="${WORK}/bin:${PATH}"
-  unset GITHUB_REF_NAME INPUT_TAG
+  unset GITHUB_REF_NAME GITHUB_REF_TYPE INPUT_TAG
   cd "${WORK}"
 }
 
 @test "publish-go-module: the module path comes from go.mod and the proxy is asked for the tag" {
-  GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
+  GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
   [ "${status}" -eq 0 ]
   grep -q 'curl|.*https://sum.golang.org/lookup/example.com/some/lib@v1.2.3' "${CALLS}"
   grep -q 'curl|.*https://proxy.golang.org/example.com/some/lib/@v/v1.2.3.info' "${CALLS}"
@@ -43,7 +43,7 @@ setup() {
 
 @test "publish-go-module: without go.mod it fails" {
   rm go.mod
-  GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
+  GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
   [ "${status}" -ne 0 ]
   ! grep -q '^curl|' "${CALLS}" || false
 }
@@ -52,4 +52,10 @@ setup() {
   GITHUB_REF_NAME=main INPUT_TAG=v0.1.0 run bash "${SCRIPT}"
   [ "${status}" -eq 0 ]
   grep -q 'proxy.golang.org/example.com/some/lib/@v/v0.1.0.info' "${CALLS}"
+}
+
+@test "publish-go-module: a branch run's GITHUB_REF_NAME is never the tag" {
+  GITHUB_REF_TYPE=branch GITHUB_REF_NAME=main run bash "${SCRIPT}"
+  [ "${status}" -ne 0 ]
+  [ ! -s "${CALLS}" ]
 }

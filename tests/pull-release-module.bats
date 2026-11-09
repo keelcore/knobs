@@ -20,12 +20,12 @@ setup() {
   : > "${HEADERS}"
   export STUB_CALLS="${CALLS}" STUB_SERVED="${SERVED}" STUB_HEADERS="${HEADERS}"
   export PATH="${WORK}/bin:${PATH}"
-  unset GITHUB_REF_NAME INPUT_TAG GITHUB_TOKEN
+  unset GITHUB_REF_NAME GITHUB_REF_TYPE INPUT_TAG GITHUB_TOKEN
   cd "${WORK}"
 }
 
 @test "pull-release-module: the zip and SHA256SUMS land in dist/ from the go.mod repository's release" {
-  GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
+  GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
   [ "${status}" -eq 0 ]
   cmp "${SERVED}/lib-v1.2.3.zip" dist/lib-v1.2.3.zip
   grep -qx 'https://github.com/example/lib/releases/download/v1.2.3/SHA256SUMS' "${CALLS}"
@@ -34,7 +34,7 @@ setup() {
 
 @test "pull-release-module: a zip that differs from its SHA256SUMS line fails" {
   printf 'tampered\n' > "${SERVED}/lib-v1.2.3.zip"
-  GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
+  GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
   [ "${status}" -ne 0 ]
 }
 
@@ -57,14 +57,20 @@ setup() {
 }
 
 @test "pull-release-module: with GITHUB_TOKEN every download is authenticated" {
-  GITHUB_TOKEN=t0ken GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
+  GITHUB_TOKEN=t0ken GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
   [ "${status}" -eq 0 ]
   [ "$(grep -cx 'Authorization: Bearer t0ken' "${HEADERS}")" -eq 2 ]
   [[ "${output}" != *t0ken* ]] || false
 }
 
 @test "pull-release-module: without GITHUB_TOKEN no download carries credentials" {
-  GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
+  GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 run bash "${SCRIPT}"
   [ "${status}" -eq 0 ]
   ! grep -q '^Authorization' "${HEADERS}" || false
+}
+
+@test "pull-release-module: a branch run's GITHUB_REF_NAME is never the tag" {
+  GITHUB_REF_TYPE=branch GITHUB_REF_NAME=main run bash "${SCRIPT}"
+  [ "${status}" -ne 0 ]
+  [ ! -s "${CALLS}" ]
 }
