@@ -14,7 +14,7 @@ make test-integration       # the conformance suite once per built harness, then
 
 Each case is copied to a scratch directory, its file modes applied and `{schema}` replaced by `spec/schema/`; the
 harness runs there with the case's arguments and command, and its stdout is compared with the case's `expect` (or
-`expect_error`, with exit status 2) as JSON. The Go unit tests also run every case in process (`spec_test.go`,
+`expect_error`, with exit status 2) as JSON. The Go unit tests also run every case in process (`doc_test.go`,
 `internal/conform`), so the engine is measured against the whole contract.
 
 ## Adding behavior

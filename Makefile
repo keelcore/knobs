@@ -55,6 +55,15 @@ build-conform:
 	@echo "🔨 Building conformance harnesses..."
 	bash scripts/dev/run.sh bash scripts/build/build-conform.sh $(IMPL)
 
+.PHONY: lint-test-layout
+
+## Unit-test layout: all unit tests for {foo}.go in {foo}_test.go (knobs#13); part of lint
+lint-test-layout: | ensure-container
+	@echo "🔍 Checking the unit-test layout..."
+	bash scripts/dev/run.sh bash scripts/lint/lint-test-layout.sh
+
+lint: lint-test-layout
+
 .PHONY: check-schema-types
 
 ## The type-match audit: the Go bindings' type table against the test schemas (after build-conform)

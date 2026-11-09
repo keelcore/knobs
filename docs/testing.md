@@ -5,7 +5,7 @@ lists knobs' suites.
 
 | Suite | Target | What it covers |
 | --- | --- | --- |
-| Unit | `make test-unit` | every Go package, in process; every conformance case through the harness; servotrim's ported tests |
+| Unit | `make test-unit` | every Go package, in process; every conformance case through the harness |
 | Coverage | `make test-coverage`, `make check-coverage-regression` | per-file line coverage against `tests/coverage-baseline.lcov`; new files at 95% or more |
 | Integration | `make test-integration` | the conformance suite against the built harness, then every other BATS suite |
 | Fuzz | `make test-fuzz` | text conversion, file layers, connection values |
@@ -14,8 +14,11 @@ lists knobs' suites.
 
 ## Unit tests
 
-- `spec_test.go` and `internal/conform/conform_test.go` run every `spec/cases/` case in process.
-- `servotrim_test.go` carries the tests of servotrim's two resolvers, ported to this engine.
+- All unit tests for `{foo}.go` are in `{foo}_test.go` beside it. `make lint` checks it
+  (`scripts/lint/lint-test-layout.sh`): a test file with no source, or a source with no test file, fails;
+  `cmd/*/main.go`, `doc.go` and the helpers-only files `config/test-layout.local.txt` lists are exempt.
+- `doc_test.go` (the contract `doc.go` describes) and `internal/conform/conform_test.go` run every `spec/cases/` case
+  in process, so each package is measured against the whole contract.
 - `connection_test.go` opens 12800 connections from 64 goroutines against one process configuration (run under
   `-race`), and measures the heap that 100, 1000 and 10000 live connections hold: under 512 bytes each, and no growth
   per connection with the count.

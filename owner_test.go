@@ -93,12 +93,6 @@ func sidecarSchemaOwnerless(t *testing.T) string {
 	return b.String()
 }
 
-func TestOwnerMustBeAString(t *testing.T) {
-	bad := strings.Replace(ownedSchema, `"x-knobs-owner": "example.com/keel"`, `"x-knobs-owner": 5`, 1)
-	e, _ := New("demo")
-	wantCode(t, e.Attach(Module{Schema: []byte(bad)}), CodeSchemaInvalid)
-}
-
 func TestMajors(t *testing.T) {
 	for _, tc := range []struct {
 		paths []string

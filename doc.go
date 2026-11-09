@@ -5,7 +5,7 @@
 //	code → schema default → global file → user file → secrets file → env → cli → runtime → connection
 //
 // Every layer is validated against the schemas before it is merged, so an error names its
-// layer and key; a schema may use only the keywords knobs enforces, so no rule in it goes
+// layer and key; a schema may hold only its draft's keywords and the x-knobs- ones, so no rule in it goes
 // unenforced. A value read from the secrets file, or set for a key the schema marks secret,
 // is secret: it prints as Redacted in every dump and audit record and is read only through
 // Secret.Reveal. Connection overrides apply per connection (Config.WithConnection), on

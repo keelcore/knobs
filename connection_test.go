@@ -140,3 +140,165 @@ func bytesPerConnection(c *Config, n int) float64 {
 	}
 	return float64(used) / float64(n)
 }
+
+func TestConnectionOverUnsetKey(t *testing.T) {
+	e := engine(t, optionalSchema)
+	e.Add(Defaults())
+	c, err := e.Resolve()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, _ := c.WithConnection(Connection{Values: map[string]string{"demo.opt.limit": "3"}, Authorized: true})
+	if vs := r.Values(); len(vs) != 1 || vs[0].Key != "demo.opt.limit" {
+		t.Fatalf("a connection value with no process value is listed: %+v", vs)
+	}
+	// A connection built from a connection starts again from the process configuration.
+	again, _ := r.WithConnection(Connection{})
+	if _, ok := again.Get("demo.opt.limit"); ok {
+		t.Fatal("connections do not stack")
+	}
+}
+
+func TestWithConnection(t *testing.T) {
+	e := engine(t, httpSchema)
+	e.Add(Defaults())
+	c, err := e.Resolve()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, attempts := c.WithConnection(Connection{Values: map[string]string{"demo.http.port": "9000"}, Authorized: true})
+	if n, _ := r.Int("http", "port"); n != 9000 || len(attempts) != 1 || attempts[0].Outcome != OutcomeApplied {
+		t.Fatalf("connection: %d %+v", n, attempts)
+	}
+	if v, _ := r.Get("demo.http.port"); v.Layer != LayerConnection {
+		t.Fatalf("layer %s", v.Layer)
+	}
+	if n, _ := c.Int("http", "port"); n != 8080 {
+		t.Fatalf("WithConnection must not change the process config: %d", n)
+	}
+	for o, want := range map[Outcome]string{
+		OutcomeApplied: "applied", OutcomeClamped: "clamped", OutcomeRejectedUnauthorized: "rejected_unauthorized",
+		OutcomeRejectedNotOverridable: "rejected_not_overridable", OutcomeRejectedMalformed: "rejected_malformed",
+		Outcome(99): "unknown",
+	} {
+		if o.String() != want {
+			t.Fatalf("%d: %s", o, o.String())
+		}
+	}
+}
+
+// TestRuntimeTier: runtime beats cli, a connection beats runtime.
+func TestConnectionOverRuntime(t *testing.T) {
+	c := mustGate(t, CLI([]string{"demo.gate.window=40"}), Runtime(map[string]string{"demo.gate.window": "50"}))
+	if n, _ := c.Int("gate", "window"); n != 50 || layerOf(t, c, "demo.gate.window") != LayerRuntime {
+		t.Fatalf("runtime: %d", n)
+	}
+	r, _ := c.WithConnection(Connection{Values: map[string]string{"demo.gate.window": "60"}, Authorized: true})
+	if n, _ := r.Int("gate", "window"); n != 60 || layerOf(t, r, "demo.gate.window") != LayerConnection {
+		t.Fatalf("connection: %d", n)
+	}
+}
+
+// TestResolveNilSession, TestAbsentHeaderKeepsBase: no connection values leave the process
+// configuration as it is, with no attempts.
+func TestConnectionEmpty(t *testing.T) {
+	c := mustGate(t)
+	r, attempts := c.WithConnection(Connection{Authorized: true})
+	if n, _ := r.Int("gate", "window"); n != 16 || len(attempts) != 0 {
+		t.Fatalf("got %d, %v", n, attempts)
+	}
+}
+
+// TestHeaderOverlay, TestResolveWithHeaders: an authorized override on an allowlisted key wins.
+func TestConnectionOverlay(t *testing.T) {
+	c := mustGate(t)
+	r, attempts := c.WithConnection(Connection{Values: map[string]string{"demo.gate.mode": "loose"}, Authorized: true})
+	if s, _ := r.String("gate", "mode"); s != "loose" || attempts[0].Outcome != OutcomeApplied {
+		t.Fatalf("got %q %v", s, attempts)
+	}
+}
+
+// TestUnauthorizedCredentialIgnored: an allowlisted key is not overridden without authorization
+// (fail-closed).
+func TestConnectionUnauthorized(t *testing.T) {
+	c := mustGate(t)
+	r, attempts := c.WithConnection(Connection{Values: map[string]string{"demo.gate.window": "40"}})
+	if n, _ := r.Int("gate", "window"); n != 16 || attempts[0].Outcome != OutcomeRejectedUnauthorized {
+		t.Fatalf("got %d %v", n, attempts)
+	}
+}
+
+// TestUnauthorizedHeaderIgnored: a key not marked overridable keeps its value, authorized or not.
+func TestConnectionNotOverridable(t *testing.T) {
+	c := mustGate(t)
+	r, attempts := c.WithConnection(Connection{Values: map[string]string{"demo.gate.locked": "x", "demo.gate.api_key": "k"}, Authorized: true})
+	if s, _ := r.String("gate", "locked"); s != "fixed" {
+		t.Fatalf("got %q", s)
+	}
+	for _, a := range attempts {
+		if a.Outcome != OutcomeRejectedNotOverridable {
+			t.Fatalf("%s: %v", a.Key, a.Outcome)
+		}
+	}
+}
+
+// TestHeaderClampAndReject, TestHeaderAttempt: out of range clamps to the bound; a non-numeric
+// value on a bounded key keeps the base; every attempt is recorded.
+func TestConnectionClampAndReject(t *testing.T) {
+	c := mustGate(t)
+	r, attempts := c.WithConnection(Connection{Values: map[string]string{
+		"demo.gate.window": "9999", "demo.gate.ratio": "0.2", "demo.gate.mode": "ok",
+	}, Authorized: true})
+	if n, _ := r.Int("gate", "window"); n != 64 {
+		t.Fatalf("clamped to max: %d", n)
+	}
+	if f, _ := r.Float("gate", "ratio"); f != 1 {
+		t.Fatalf("clamped to min (only minimum set): %v", f)
+	}
+	want := []Outcome{OutcomeApplied, OutcomeClamped, OutcomeClamped}
+	for i, a := range attempts {
+		if a.Outcome != want[i] {
+			t.Fatalf("%s: %v, want %v", a.Key, a.Outcome, want[i])
+		}
+	}
+	r, attempts = c.WithConnection(Connection{Values: map[string]string{"demo.gate.window": "abc"}, Authorized: true})
+	if n, _ := r.Int("gate", "window"); n != 16 || attempts[0].Outcome != OutcomeRejectedMalformed {
+		t.Fatalf("malformed keeps the base: %d %v", n, attempts)
+	}
+}
+
+// FuzzConnection: any connection key and text yield exactly one attempt, and the process
+// configuration is unchanged.
+func FuzzConnection(f *testing.F) {
+	f.Add("demo.http.port", "9000", true)
+	f.Add("demo.db.password", "x", true)
+	f.Add("nope", "", false)
+	e := engine(f, httpSchema, dbSchema)
+	e.Add(Defaults())
+	c, err := e.Resolve()
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Fuzz(func(t *testing.T, key, text string, authorized bool) {
+		_, attempts := c.WithConnection(Connection{Values: map[string]string{key: text}, Authorized: authorized})
+		if len(attempts) != 1 {
+			t.Fatalf("attempts %v", attempts)
+		}
+		if n, _ := c.Int("http", "port"); n != 8080 {
+			t.Fatalf("the process configuration changed: %d", n)
+		}
+	})
+}
+
+func TestConnectionBoundBreakingARuleIsMalformed(t *testing.T) {
+	e := engine(t, nestedSchema)
+	e.Add(Code(map[string]any{"demo.svc.db.tls.ca": "x"}))
+	c, err := e.Resolve()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, attempts := c.WithConnection(Connection{Values: map[string]string{"demo.svc.step": "12"}, Authorized: true})
+	if attempts[0].Outcome != OutcomeRejectedMalformed {
+		t.Fatalf("clamped to an exclusive maximum: %v", attempts[0].Outcome)
+	}
+}

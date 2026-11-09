@@ -14,6 +14,15 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Changed
 
+- All unit tests for `{foo}.go` are in `{foo}_test.go` beside it (#13). The tests of `branches_test.go`,
+  `knobs_test.go`, `servotrim_test.go`, `fuzz_test.go`, `jsonschema_test.go` and `keel_schema_test.go` moved, unchanged,
+  into the test file of the source each asserts (new: `bind_test.go`, `config_test.go`, `engine_test.go`,
+  `errors_test.go`, `layer_test.go`, `module_test.go`, `rules_test.go`, `secret_test.go`, `strict_test.go`,
+  `value_test.go`, `internal/conform/bindings_test.go`); `TestOwnerMustBeAString` moved to `module_test.go`, and
+  `TestTypesCommand` to `internal/conform/bindings_test.go`. `spec_test.go`, which runs every conformance case
+  against the package, is now `doc_test.go`, the test of the contract `doc.go` describes. The `TestServotrim*` tests
+  are renamed after what each tests (`TestLayerPrecedence`, `TestConnectionClampAndReject`, ...), and their fixture
+  application is `demo`.
 - Schemas and every value are validated by `github.com/santhosh-tekuri/jsonschema/v6` instead of knobs' own subset
   parser (`schema.go`, now gone): every keyword of the schema's dialect is enforced, in draft 2019-09 or 2020-12, and
   a schema may be JSON or YAML. A schema using a keyword outside the old fixed set (`pattern`, `items`,
@@ -69,6 +78,10 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- `make lint-test-layout` (`scripts/lint/lint-test-layout.sh`), part of `make lint` and, through
+  `scripts/lint-all.local.sh`, the pre-commit hook: a test file with no `{foo}.go` beside it, or a source with no
+  `{foo}_test.go`, fails, naming the file; `cmd/*/main.go`, `doc.go` and the helpers-only files
+  `config/test-layout.local.txt` lists are exempt (#13).
 - Nested objects and arrays in schemas (#12). A property with `properties` of its own is a nested object; any other
   property is a knob of any type, keyed by its dotted path (`demo.listeners.http.port`, env
   `DEMO_LISTENERS_HTTP_PORT`) through every layer. Array text from env, cli, runtime and connection is a JSON list or

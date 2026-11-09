@@ -22,8 +22,8 @@ type caseFile struct {
 	ExpectError json.RawMessage   `json:"expect_error"`
 }
 
-// TestSpecCases runs every conformance case through the harness in process, so the engine package
-// is measured against the whole contract (internal/conform repeats this for the harness package).
+// TestSpecCases runs every conformance case through the harness in process, so the package is measured
+// against the whole contract doc.go describes (internal/conform repeats this for the harness package).
 func TestSpecCases(t *testing.T) {
 	spec, err := filepath.Abs("spec")
 	if err != nil {
