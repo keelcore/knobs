@@ -64,6 +64,13 @@ lint-test-layout: | ensure-container
 
 lint: lint-test-layout
 
+.PHONY: lint-all-local
+
+## knobs' own linters, as lint-all and the pre-commit hook run them first (scripts/lint-all.local.sh)
+lint-all-local: | ensure-container
+	@echo "🔍 Running knobs' own linters..."
+	bash scripts/dev/run.sh bash scripts/lint-all.local.sh
+
 .PHONY: check-schema-types
 
 ## The type-match audit: the Go bindings' type table against the test schemas (after build-conform)

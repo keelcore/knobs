@@ -79,9 +79,9 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 ### Added
 
 - `make lint-test-layout` (`scripts/lint/lint-test-layout.sh`), part of `make lint` and, through
-  `scripts/lint-all.local.sh`, the pre-commit hook: a test file with no `{foo}.go` beside it, or a source with no
-  `{foo}_test.go`, fails, naming the file; `cmd/*/main.go`, `doc.go` and the helpers-only files
-  `config/test-layout.local.txt` lists are exempt (#13).
+  `scripts/lint-all.local.sh` (`make lint-all-local`), the pre-commit hook: a test file with no `{foo}.go` beside
+  it, or a source with no `{foo}_test.go`, fails, naming the file; `cmd/*/main.go`, `doc.go` and the helpers-only
+  files `config/test-layout.local.txt` lists are exempt (#13).
 - Nested objects and arrays in schemas (#12). A property with `properties` of its own is a nested object; any other
   property is a knob of any type, keyed by its dotted path (`demo.listeners.http.port`, env
   `DEMO_LISTENERS_HTTP_PORT`) through every layer. Array text from env, cli, runtime and connection is a JSON list or
