@@ -12,8 +12,30 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ## [Unreleased]
 
+### Changed
+
+- `.standards` refreshed from v0.10.24 to v0.11.0: `scripts/dev/run.sh` passes into the dev image each name the script
+  it runs imports (keelcore/standards#22); `build-native.sh` records the module root package as `.`
+  (keelcore/standards#23); `test-native-integrity.sh` puts the native build on `PATH` in the host's own form and sets
+  `NATIVE_DIR` (keelcore/standards#24); the release scripts take the tag from one resolver, `release_tag`
+  (keelcore/standards#25); `lint-bash` checks every environment import against `governance/bash.md` R37
+  (keelcore/standards#26).
+
 ### Fixed
 
+- knobs' own scripts import their environment as `governance/bash.md` R37 requires (`declare -rx NAME="${NAME:-…}"`):
+  `apply-rulesets.sh`, `publish-go-module.sh`, `pull-release-module.sh` and the `stub-curl.sh` test fixture, so
+  `make lint` passes on `.standards` v0.11.0 and `make check-rulesets` receives `GH_TOKEN` in the dev image (#7).
+- `publish-go-module.sh` and `pull-release-module.sh` take the tag from the canonical `release_tag`
+  (`scripts/lib/release-tag.sh`): `INPUT_TAG`, else `GITHUB_REF_NAME` only on a tag push. A branch run's
+  `GITHUB_REF_NAME` is never taken as the tag (#6, #7).
+- `release.yml` no longer assigns `GITHUB_REF_NAME`, which GitHub ignores, nor `KEELCORE_DEV_ENV`: a manual release
+  names its tag in `INPUT_TAG` alone, and `run.sh` passes it because the scripts import it. `ci.yml` no longer
+  assigns `GITHUB_HEAD_REF`, which GitHub sets itself (#6, #10).
+- `build-native.local.sh` leaves the canonical `tests.tsv` as written; its rewrite of the root package's row to `.`
+  is gone, as `build-native.sh` now writes `.` itself (#4).
+- `test-native-integrity.local.sh` runs `bats` and `knobs-conform` from `PATH` and requires `NATIVE_DIR`, as the
+  canonical script now provides both; it no longer searches `target/native/` (#5, #8).
 - The release's attest job downloads the module zip with the job's read-only token (`GITHUB_TOKEN`, passed to curl on
   stdin): GitHub answered anonymous release downloads with HTTP 504 while serving authenticated ones, so v0.8.1's
   attestation failed.
@@ -35,6 +57,14 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- CI-only checks in a new repository built from the commit (`scripts/lib/scratch-repo.sh`), on a `workflow_dispatch`
+  of `ci.yml`: Manual release tag (`make test-manual-release`: `wait-for-publish` and `pull-release-module` take
+  v0.8.2 from `INPUT_TAG` on a branch run, and fail without it), and the native build and tests
+  (`make build-native-scratch` on Linux, `make test-native-scratch` on macOS and Windows: `tests.tsv` holds no
+  absolute path, the root package's tests run, and the integrity hook finds the harness on `PATH`).
+- BATS suites `apply-rulesets.bats`, `env-imports.bats`, `workflows-env.bats` (no workflow assigns a `GITHUB_*` or
+  `RUNNER_*` variable, nothing names `KEELCORE_DEV_ENV`), `native-hooks.bats`, `native-scratch.bats` and
+  `test-manual-release.bats`.
 - On Windows, the secrets file is checked by its security descriptor (`perm_windows.go`, `golang.org/x/sys/windows`):
   owned by the current user, SYSTEM or Administrators, with a DACL granting those three only; Linux and macOS keep
   the mode-bit check (`perm_posix.go`). Windows-only tests set DACLs with `github.com/hectane/go-acl`.
