@@ -14,6 +14,11 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Changed
 
+- `AddStandard` reads the process environment itself when `Standard.Env` is nil (it read none before), for the env
+  layer and the path knobs alike; a `Standard.Env` still replaces it. A program passes only its application name and
+  its command-line knobs (#14).
+- The conformance runners in `doc_test.go` and `internal/conform` copy a case's whole directory, subdirectories
+  included, as `tests/conformance.bats` does.
 - All unit tests for `{foo}.go` are in `{foo}_test.go` beside it (#13). The tests of `branches_test.go`,
   `knobs_test.go`, `servotrim_test.go`, `fuzz_test.go`, `jsonschema_test.go` and `keel_schema_test.go` moved, unchanged,
   into the test file of the source each asserts (new: `bind_test.go`, `config_test.go`, `engine_test.go`,
@@ -84,6 +89,11 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- The file-name knob `<app>.knobs.file_name` (`--knob`, else `<APP>_KNOBS_FILE_NAME`; default `config.yaml`): the
+  global and user files' name at their default locations (`/etc/<app>/<name>`, `$XDG_CONFIG_HOME/<app>/<name>`; the
+  Windows equivalents), resolved before any file loads. A full-path knob outranks it; a name that is a path fails
+  with `invalid_argument`, naming the knob (#14). The conformance harness takes `--standard`, which resolves through
+  `AddStandard`, and five cases cover the file name.
 - `make lint-test-layout-local` (`scripts/lint/lint-test-layout.local.sh`), part of `make lint`, as `.standards`
   runs its own linters: a test file with no `{foo}.go` beside it, or a source with no `{foo}_test.go`, fails, naming
   the file; `cmd/*/main.go`, `doc.go` and the helpers-only files `config/test-layout.local.txt` lists are exempt

@@ -8,10 +8,10 @@ func TestStandardDefaultPathsOnWindows(t *testing.T) {
 	env := func(vars map[string]string) func(string) (string, bool) {
 		return func(k string) (string, bool) { v, ok := vars[k]; return v, ok }
 	}
-	if g := defaultGlobalPath("demo", env(map[string]string{"ProgramData": `D:\Data`})); g != `D:\Data\demo\config.yaml` {
+	if g := defaultGlobalPath("demo", defaultFileName, env(map[string]string{"ProgramData": `D:\Data`})); g != `D:\Data\demo\config.yaml` {
 		t.Fatalf("global from ProgramData: %s", g)
 	}
-	if g := defaultGlobalPath("demo", env(nil)); g != `C:\ProgramData\demo\config.yaml` {
+	if g := defaultGlobalPath("demo", defaultFileName, env(nil)); g != `C:\ProgramData\demo\config.yaml` {
 		t.Fatalf("global without ProgramData: %s", g)
 	}
 	if u := DefaultUserPath("demo", env(map[string]string{"APPDATA": `C:\Users\x\AppData\Roaming`})); u != `C:\Users\x\AppData\Roaming\demo\config.yaml` {
@@ -22,5 +22,16 @@ func TestStandardDefaultPathsOnWindows(t *testing.T) {
 	}
 	if DefaultGlobalPath("demo") == "" {
 		t.Fatal("the process environment gives a global path")
+	}
+}
+
+// The global and user files take one file name.
+func TestDefaultPathsTakeTheFileNameOnWindows(t *testing.T) {
+	env := func(k string) (string, bool) { return `D:\Data`, k == "ProgramData" || k == "APPDATA" }
+	if g := defaultGlobalPath("demo", "keel.yaml", env); g != `D:\Data\demo\keel.yaml` {
+		t.Fatalf("global: %s", g)
+	}
+	if u := defaultUserPath("demo", "keel.yaml", env); u != `D:\Data\demo\keel.yaml` {
+		t.Fatalf("user: %s", u)
 	}
 }

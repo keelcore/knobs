@@ -25,7 +25,7 @@ type invocation struct {
 	knobs                    []string
 	runtime                  map[string]string
 	connection               map[string]string
-	authorized               bool
+	authorized, standard     bool
 	command                  string
 }
 
@@ -120,6 +120,15 @@ func build(inv *invocation) (*knobs.Engine, error) {
 		}
 	}
 	env := func(name string) (string, bool) { v, ok := inv.env[name]; return v, ok }
+	if inv.standard {
+		// The standard layers, as a program gets them: --env is its whole environment, and the files come
+		// from the given paths, else the path and file-name knobs, else the default locations.
+		if len(inv.code) > 0 {
+			return nil, errors.New("--code does not combine with --standard")
+		}
+		return e, e.AddStandard(knobs.Standard{GlobalPath: inv.global, UserPath: inv.user, SecretsPath: inv.secrets,
+			Env: env, Knobs: inv.knobs, Runtime: inv.runtime})
+	}
 	layers := []knobs.Layer{
 		knobs.Code(inv.code),
 		knobs.Defaults(),
@@ -155,6 +164,10 @@ func parse(args []string) (*invocation, error) {
 				return nil, fmt.Errorf("the command %q comes last", a)
 			}
 			inv.command = a
+			continue
+		}
+		if a == "--standard" {
+			inv.standard = true
 			continue
 		}
 		if a == "--authorized" {

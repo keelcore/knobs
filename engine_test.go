@@ -8,7 +8,17 @@ import (
 	"time"
 )
 
+// isolateUserFiles points the default user-file location (XDG_CONFIG_HOME, APPDATA) at an empty directory, so a
+// test that reads the process environment never reads a user file of the machine it runs on.
+func isolateUserFiles(t *testing.T) {
+	t.Helper()
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("APPDATA", dir)
+}
+
 func TestAddStandardSources(t *testing.T) {
+	isolateUserFiles(t)
 	dir := t.TempDir()
 	user := filepath.Join(dir, "user.yaml")
 	if err := os.WriteFile(user, []byte("demo:\n  http:\n    host: 10.0.0.1\n"), 0o600); err != nil {
@@ -49,6 +59,7 @@ const optionalSchema = `{
 // TestAttachModules: main attaches each module; every module brings its own schema, its code values (keyed
 // by its own knob names) and its own files, and the engine aggregates them.
 func TestAttachModules(t *testing.T) {
+	isolateUserFiles(t)
 	dir := t.TempDir()
 	optGlobal := filepath.Join(dir, "opt.yaml")
 	if err := os.WriteFile(optGlobal, []byte("pin: 5\n"), 0o600); err != nil {
@@ -162,6 +173,96 @@ func TestStandardPaths(t *testing.T) {
 	}
 	_, err = e.Resolve()
 	wantCode(t, err, CodeFileNotFound)
+}
+
+// With no Standard.Env, AddStandard reads the process environment, for the env layer and the path
+// knobs alike; a Standard.Env replaces it.
+func TestAddStandardReadsTheProcessEnvironment(t *testing.T) {
+	isolateUserFiles(t)
+	t.Setenv("DEMO_HTTP_PORT", "9100")
+	e := engine(t, httpSchema)
+	if err := e.AddStandard(Standard{}); err != nil {
+		t.Fatal(err)
+	}
+	c, err := e.Resolve()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v, _ := c.Get("demo.http.port"); v.Value != int64(9100) || v.Layer != LayerEnv {
+		t.Fatalf("ambient env: %+v", v)
+	}
+	e = engine(t, httpSchema)
+	given := map[string]string{"DEMO_HTTP_PORT": "9200"}
+	if err := e.AddStandard(Standard{Env: func(k string) (string, bool) { v, ok := given[k]; return v, ok }}); err != nil {
+		t.Fatal(err)
+	}
+	if c, err = e.Resolve(); err != nil {
+		t.Fatal(err)
+	}
+	if v, _ := c.Get("demo.http.port"); v.Value != int64(9200) {
+		t.Fatalf("Standard.Env replaces the process environment: %+v", v)
+	}
+}
+
+// The file-name knob <app>.knobs.file_name names the global and user files (config.yaml by default),
+// cli over env; a full-path knob outranks it.
+func TestFileNameKnob(t *testing.T) {
+	xdg := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(xdg, "demo"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for name, port := range map[string]string{"config.yaml": "1001", "keel.yaml": "1002", "other.yaml": "1003", "exact.yaml": "1004"} {
+		if err := os.WriteFile(filepath.Join(xdg, "demo", name), []byte("demo:\n  http:\n    port: "+port+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for label, tc := range map[string]struct {
+		env   map[string]string
+		knobs []string
+		port  int64
+	}{
+		"default config.yaml":   {nil, nil, 1001},
+		"empty env is unset":    {map[string]string{"DEMO_KNOBS_FILE_NAME": ""}, nil, 1001},
+		"from env":              {map[string]string{"DEMO_KNOBS_FILE_NAME": "keel.yaml"}, nil, 1002},
+		"cli over env":          {map[string]string{"DEMO_KNOBS_FILE_NAME": "keel.yaml"}, []string{"demo.knobs.file_name=other.yaml"}, 1003},
+		"full path outranks it": {map[string]string{"DEMO_KNOBS_USER_PATH": filepath.Join(xdg, "demo", "exact.yaml")}, []string{"demo.knobs.file_name=other.yaml"}, 1004},
+	} {
+		t.Run(label, func(t *testing.T) {
+			vars := map[string]string{"XDG_CONFIG_HOME": xdg, "APPDATA": xdg}
+			for k, v := range tc.env {
+				vars[k] = v
+			}
+			e := engine(t, httpSchema)
+			if err := e.AddStandard(Standard{Env: func(k string) (string, bool) { v, ok := vars[k]; return v, ok }, Knobs: tc.knobs}); err != nil {
+				t.Fatal(err)
+			}
+			c, err := e.Resolve()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if v, _ := c.Get("demo.http.port"); v.Value != tc.port || v.Layer != LayerUser {
+				t.Fatalf("want %d from the user file, got %+v", tc.port, v)
+			}
+		})
+	}
+}
+
+// A file name is one path element: a path, ".", ".." or a separator fails, naming the knob.
+func TestFileNameKnobRejectsAPath(t *testing.T) {
+	for _, bad := range []string{"../config.yaml", "a/b.yaml", "..", "."} {
+		e := engine(t, httpSchema)
+		err := e.AddStandard(Standard{Env: func(string) (string, bool) { return "", false }, Knobs: []string{"demo.knobs.file_name=" + bad}})
+		var ke *Error
+		if !errors.As(err, &ke) || ke.Code != CodeInvalidArgument || ke.Layer != LayerCLI || ke.Key != "demo.knobs.file_name" {
+			t.Fatalf("%q: got %v", bad, err)
+		}
+	}
+	e := engine(t, httpSchema)
+	err := e.AddStandard(Standard{Env: func(k string) (string, bool) { return "x/y", k == "DEMO_KNOBS_FILE_NAME" }})
+	var ke *Error
+	if !errors.As(err, &ke) || ke.Code != CodeInvalidArgument || ke.Layer != LayerEnv {
+		t.Fatalf("from env: got %v", err)
+	}
 }
 
 func TestAddStandardRejectsAMalformedKnob(t *testing.T) {

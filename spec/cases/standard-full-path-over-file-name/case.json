@@ -1,0 +1,53 @@
+{
+  "description": "A full-path knob outranks the file name.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--standard",
+    "--env",
+    "XDG_CONFIG_HOME=.",
+    "--env",
+    "APPDATA=.",
+    "--knob",
+    "demo.knobs.file_name=other.yaml",
+    "--knob",
+    "demo.knobs.user_path=exact.yaml"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 9004,
+        "layer": "user",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": false,
+        "layer": "schema",
+        "secret": false
+      }
+    }
+  }
+}

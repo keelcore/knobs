@@ -51,7 +51,7 @@ func main() {
         err = engine.Attach(httpd.Knobs, store.Knobs)
     }
     if err == nil {
-        err = engine.AddStandard(knobs.Standard{Env: os.LookupEnv, Knobs: knobFlags})
+        err = engine.AddStandard(knobs.Standard{Knobs: knobFlags}) // knobs reads the environment itself
     }
     var config *knobs.Config
     if err == nil {
@@ -75,7 +75,7 @@ Lowest to highest precedence:
 | --- | --- |
 | `code` | each module's `Code`, then any `knobs.Code` layer |
 | `schema` | each property's `default` |
-| `global` | `/etc/demo/config.yaml` (Windows: `%ProgramData%\demo\config.yaml`), then each module's `GlobalPath` |
+| `global` | `/etc/demo/config.yaml` (Windows: `%ProgramData%\demo\config.yaml`; the file name is a knob), then each module's `GlobalPath` |
 | `user` | `$XDG_CONFIG_HOME/demo/config.yaml` (else `~/.config/demo/config.yaml`; Windows: `%APPDATA%\demo\config.yaml`), then each module's `UserPath` |
 | `secrets` | the secrets file, when one is named: its owner's alone (mode bits on Linux and macOS, owner and DACL on Windows) |
 | `env` | `DEMO_HTTP_PORT`, or the property's `x-knobs-env` |
@@ -94,7 +94,10 @@ demo:
 
 A module's own file holds its mapping directly (`port: 9001`) and overrides the application's file within the same
 layer. The file paths themselves are knobs of the reserved module `knobs`, set by cli or env only:
-`--knob demo.knobs.global_path=...`, `DEMO_KNOBS_USER_PATH=...`, `DEMO_KNOBS_SECRETS_PATH=...`.
+`--knob demo.knobs.global_path=...`, `DEMO_KNOBS_USER_PATH=...`, `DEMO_KNOBS_SECRETS_PATH=...`. The global and user
+files share one file name, `config.yaml` unless the knob `demo.knobs.file_name` names another
+(`--knob demo.knobs.file_name=demo.yaml`, `DEMO_KNOBS_FILE_NAME=demo.yaml`); a full path outranks it. knobs reads
+the process environment itself; `Standard.Env` replaces it, for tests and embedding.
 
 ## 4. Reading values
 

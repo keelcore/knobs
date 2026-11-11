@@ -90,6 +90,15 @@ Lowest to highest precedence:
   at its default location is skipped; a file named explicitly that is missing fails with `file_not_found`.
   A module's own files are optional: missing, they are skipped. An `integer` property accepts a YAML number with no
   fractional part; a `number` property accepts any YAML number.
+- **The standard files** (`AddStandard`): a program gives knobs its application name and its command-line knobs;
+  knobs reads the process environment itself. Each file's path is the one given, else its path knob from the cli,
+  else from env (`<app>.knobs.global_path`, `user_path`, `secrets_path`; `<APP>_KNOBS_GLOBAL_PATH`, ...), else its
+  default location: the global file `/etc/<app>/<name>` (Windows: `%ProgramData%\<app>\<name>`), the user file
+  `$XDG_CONFIG_HOME/<app>/<name>`, else `$HOME/.config/<app>/<name>` (Windows: `%APPDATA%\<app>\<name>`). Both take
+  one `<name>`: the file-name knob `<app>.knobs.file_name` from the cli, else `<APP>_KNOBS_FILE_NAME`, else
+  `config.yaml`. A name is one path element; a path fails with `invalid_argument`, naming the knob. A secrets file
+  is read only when a path names it. The engine's own knobs are resolved from cli and env before any file loads,
+  and are never values of the configuration.
 - **The secrets file** is its owner's alone, or it fails with `secrets_file_permissions`. Where file modes carry access
   rights (Linux, macOS), no group or other bit is set. On Windows, where they do not, its owner is the current user,
   SYSTEM or Administrators, and its DACL grants access to those three only.
@@ -146,11 +155,14 @@ Each implementation builds `knobs-conform`:
 knobs-conform --app NAME --schema FILE... [--global FILE] [--user FILE] [--secrets FILE]
               [--module-global MODULE=FILE] [--module-user MODULE=FILE]
               [--code KEY=JSON]... [--env NAME=VALUE]... [--knob KEY=VALUE]... [--runtime KEY=VALUE]...
-              [--connection KEY=VALUE]... [--authorized]
+              [--connection KEY=VALUE]... [--authorized] [--standard]
               resolve | dump | print-schema
 ```
 
-The harness reads no ambient environment: `--env` is the whole environment. `--code` sets a code value; its value
+The harness reads no ambient environment: `--env` is the whole environment. `--standard` resolves through the
+standard layers (`AddStandard`) instead of the layers the flags name one by one: `--global`, `--user` and `--secrets`
+are the given paths, `--env` the environment the paths and the env layer read, and `--code` does not combine with it.
+`--code` sets a code value; its value
 is JSON (`--code demo.http.port=9000`, `--code 'demo.http.host="::1"'`). It writes JSON to stdout and exits 0, or
 writes the error object and exits 2. `--module-global` and `--module-user` name a schema's own files by its module, or by
 the application for an application schema.

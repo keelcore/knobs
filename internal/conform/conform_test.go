@@ -3,6 +3,7 @@ package conform
 import (
 	"bytes"
 	"encoding/json"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -68,18 +69,22 @@ func runCase(t *testing.T, spec, src string) {
 // copyCase copies the case directory to a scratch directory and applies the case's file modes.
 func copyCase(t *testing.T, src string, modes map[string]string) string {
 	dir := t.TempDir()
-	entries, err := os.ReadDir(src)
+	err := filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, path)
+		if d.IsDir() {
+			return os.MkdirAll(filepath.Join(dir, rel), 0o700)
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dir, rel), b, 0o600)
+	})
 	if err != nil {
 		t.Fatal(err)
-	}
-	for _, e := range entries {
-		b, err := os.ReadFile(filepath.Join(src, e.Name()))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(dir, e.Name()), b, 0o600); err != nil {
-			t.Fatal(err)
-		}
 	}
 	for name, mode := range modes {
 		m, err := strconv.ParseUint(mode, 8, 32)
@@ -130,6 +135,7 @@ func TestMainArgumentErrors(t *testing.T) {
 		{"bad code value", []string{"--app", "demo", "--code", "demo.http.port=not-json", "resolve"}},
 		{"bad connection", []string{"--app", "demo", "--connection", "no-equals", "resolve"}},
 		{"missing schema", []string{"--app", "demo", "--schema", "/nonexistent/schema.json", "resolve"}},
+		{"code with standard", []string{"--app", "demo", "--standard", "--code", "demo.http.port=1", "resolve"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var out, errOut bytes.Buffer

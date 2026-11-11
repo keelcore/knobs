@@ -1,0 +1,24 @@
+{
+  "description": "A file name that is a path fails, naming the knob.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--standard",
+    "--env",
+    "XDG_CONFIG_HOME=.",
+    "--env",
+    "APPDATA=.",
+    "--knob",
+    "demo.knobs.file_name=../x.yaml"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_argument",
+      "layer": "cli",
+      "key": "demo.knobs.file_name"
+    }
+  }
+}

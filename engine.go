@@ -1,6 +1,7 @@
 package knobs
 
 import (
+	"os"
 	"slices"
 	"sort"
 	"strings"
@@ -168,9 +169,14 @@ func keyError(set *schemaSet, code, layer, key, msg string) *Error {
 	return e
 }
 
-// Standard configures AddStandard. Empty paths are resolved from the path knobs
-// <app>.knobs.global_path, user_path and secrets_path (cli, then env), else the defaults; a
-// secrets file is read only when a path is given.
+// defaultFileName is the global and user files' name when the file-name knob does not set one.
+const defaultFileName = "config.yaml"
+
+// Standard configures AddStandard; its zero value is the whole standard set. Empty paths are resolved
+// from the path knobs <app>.knobs.global_path, user_path and secrets_path (cli, then env), else the
+// default locations, where the global and user files take the name the knob <app>.knobs.file_name
+// gives (cli, then env), else config.yaml; a secrets file is read only when a path is given. Env is
+// the environment, the process's (os.LookupEnv) when nil.
 type Standard struct {
 	GlobalPath, UserPath, SecretsPath string
 	Env                               func(string) (string, bool)
@@ -187,14 +193,18 @@ func (e *Engine) AddStandard(s Standard) error {
 	}
 	env := s.Env
 	if env == nil {
-		env = func(string) (string, bool) { return "", false }
+		env = os.LookupEnv
 	}
-	global, gx := e.pick(s.GlobalPath, "global_path", paths, env, defaultGlobalPath(e.set.app, env))
-	user, ux := e.pick(s.UserPath, "user_path", paths, env, DefaultUserPath(e.set.app, env))
+	name, err := e.fileName(paths, env)
+	if err != nil {
+		return err
+	}
+	global, gx := e.pick(s.GlobalPath, "global_path", paths, env, defaultGlobalPath(e.set.app, name, env))
+	user, ux := e.pick(s.UserPath, "user_path", paths, env, defaultUserPath(e.set.app, name, env))
 	secrets, sx := e.pick(s.SecretsPath, "secrets_path", paths, env, "")
 	layers := []Layer{
 		Code(nil), Defaults(), File(LayerGlobal, global, gx), File(LayerUser, user, ux), File(LayerSecrets, secrets, sx),
-		Env(s.Env), CLI(knobs),
+		Env(env), CLI(knobs),
 	}
 	if s.Runtime != nil {
 		layers = append(layers, Runtime(s.Runtime))
@@ -231,8 +241,30 @@ func (e *Engine) pick(given, knob string, paths map[string]string, env func(stri
 	if p, ok := paths[knob]; ok {
 		return p, true
 	}
-	if p, ok := env(strings.ToUpper(e.set.app + "_" + reservedModule + "_" + knob)); ok && p != "" {
+	if p, ok := env(e.envKnob(knob)); ok && p != "" {
 		return p, true
 	}
 	return def, false
+}
+
+// fileName is the global and user files' name: the file-name knob (cli, then env), else
+// config.yaml. A name is one path element; a path fails, naming the knob and its layer.
+func (e *Engine) fileName(paths map[string]string, env func(string) (string, bool)) (string, error) {
+	const knob = "file_name"
+	name, layer := defaultFileName, ""
+	if v, ok := paths[knob]; ok {
+		name, layer = v, LayerCLI
+	} else if v, ok := env(e.envKnob(knob)); ok && v != "" {
+		name, layer = v, LayerEnv
+	}
+	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, `/\`) {
+		return "", newError(CodeInvalidArgument, layer, e.set.app+"."+reservedModule+"."+knob,
+			"a file name is one path element, not a path")
+	}
+	return name, nil
+}
+
+// envKnob is the environment variable of one of the engine's own knobs: <APP>_KNOBS_<KNOB>.
+func (e *Engine) envKnob(knob string) string {
+	return strings.ToUpper(e.set.app + "_" + reservedModule + "_" + knob)
 }
