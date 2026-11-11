@@ -1,5 +1,5 @@
 # Helpers-only test files: test files with no {foo}.go beside them, holding helpers and no tests
-# (scripts/lint/lint-test-layout.sh). setMode gives a conformance case file its mode, per platform.
+# (scripts/lint/lint-test-layout.local.sh). setMode gives a conformance case file its mode, per platform.
 mode_posix_test.go
 mode_windows_test.go
 internal/conform/mode_posix_test.go

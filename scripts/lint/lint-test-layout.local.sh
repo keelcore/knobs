@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lint-test-layout.sh
+# lint-test-layout.local.sh
 # Check the unit-test layout: all unit tests for {foo}.go are in {foo}_test.go, in the same directory
 # (knobs#13). Fails, naming each file, on:
 #   - a test file with no {foo}.go beside it, unless config/test-layout.local.txt lists it as a helpers-only
@@ -9,7 +9,7 @@
 #     and doc.go (no code).
 # Exits 1 if violations are found (CI mode).
 #
-# Run locally:  bash scripts/lint/lint-test-layout.sh
+# Run locally:  bash scripts/lint/lint-test-layout.local.sh (make lint-test-layout-local, part of make lint)
 
 # bash configuration:
 # 1) Exit script if you try to use an uninitialized variable.
@@ -56,7 +56,7 @@ function log() {
 
 function validate_args() {
   if [ "${#}" -gt 1 ] || [ -n "${1:-}" ]; then
-    log '❌ Usage: lint-test-layout.sh'
+    log '❌ Usage: lint-test-layout.local.sh'
     exit 1
   fi
 }

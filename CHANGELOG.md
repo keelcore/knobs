@@ -35,6 +35,12 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
   conformance harness's error object (`keywords`). Draft 4, 6 and 7 schemas fail with `schema_invalid`: knobs can
   check every keyword of 2019-09 and 2020-12 only (#12).
 
+- `.standards` refreshed from v0.11.0 to v0.11.1: the Claude adapter links every governance document
+  (keelcore/standards#28); `DIST_OWNER` reaches `set-dist-permissions` in the dev image again (keelcore/standards#31);
+  every tool-image target starts the container system (keelcore/standards#32); `lint-workflows` fails when one workflow
+  pins an action repository to two refs; `update-pins` holds open Dependabot PRs to its cooldown. knobs' layout linter
+  takes the form `.standards` gives its own linters (`lint-test-layout-local`, a `make lint` prerequisite), and the
+  `scripts/lint-all.local.sh` hook with its `lint-all-local` target, added only to satisfy CI audit rule 2, is gone.
 - `.standards` refreshed from v0.10.24 to v0.11.0: `scripts/dev/run.sh` passes into the dev image each name the script
   it runs imports (keelcore/standards#22); `build-native.sh` records the module root package as `.`
   (keelcore/standards#23); `test-native-integrity.sh` puts the native build on `PATH` in the host's own form and sets
@@ -78,10 +84,10 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
-- `make lint-test-layout` (`scripts/lint/lint-test-layout.sh`), part of `make lint` and, through
-  `scripts/lint-all.local.sh` (`make lint-all-local`), the pre-commit hook: a test file with no `{foo}.go` beside
-  it, or a source with no `{foo}_test.go`, fails, naming the file; `cmd/*/main.go`, `doc.go` and the helpers-only
-  files `config/test-layout.local.txt` lists are exempt (#13).
+- `make lint-test-layout-local` (`scripts/lint/lint-test-layout.local.sh`), part of `make lint`, as `.standards`
+  runs its own linters: a test file with no `{foo}.go` beside it, or a source with no `{foo}_test.go`, fails, naming
+  the file; `cmd/*/main.go`, `doc.go` and the helpers-only files `config/test-layout.local.txt` lists are exempt
+  (#13).
 - Nested objects and arrays in schemas (#12). A property with `properties` of its own is a nested object; any other
   property is a knob of any type, keyed by its dotted path (`demo.listeners.http.port`, env
   `DEMO_LISTENERS_HTTP_PORT`) through every layer. Array text from env, cli, runtime and connection is a JSON list or

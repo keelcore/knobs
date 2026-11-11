@@ -15,7 +15,7 @@ lists knobs' suites.
 ## Unit tests
 
 - All unit tests for `{foo}.go` are in `{foo}_test.go` beside it. `make lint` checks it
-  (`scripts/lint/lint-test-layout.sh`): a test file with no source, or a source with no test file, fails;
+  (`scripts/lint/lint-test-layout.local.sh`): a test file with no source, or a source with no test file, fails;
   `cmd/*/main.go`, `doc.go` and the helpers-only files `config/test-layout.local.txt` lists are exempt.
 - `doc_test.go` (the contract `doc.go` describes) and `internal/conform/conform_test.go` run every `spec/cases/` case
   in process, so each package is measured against the whole contract.
