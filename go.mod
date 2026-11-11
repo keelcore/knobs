@@ -2,7 +2,7 @@ module github.com/keelcore/knobs
 
 go 1.27
 
-toolchain go1.27.3
+toolchain go1.27.4
 
 require (
 	github.com/hectane/go-acl v1.0.0

@@ -530,14 +530,18 @@ function discover_npmlock() {
   done < <(files_of 'package.json' '*/package.json')
 }
 
-# digest_pinned_filter: drop file:line:text matches from a Containerfile whose image is
-# named by its build context (containers/NAME/image.ref) — packages it installs at build time are
-# fixed by that digest.
+# digest_pinned_filter: drop file:line:text matches from a build file whose image is named by its
+# build context — packages it installs at build time are fixed by that image: a
+# containers/NAME/Containerfile with containers/NAME/image.ref, or a build file
+# config/tool-images.local.txt lists with its <BUILD FILE>.image.ref (scripts/lib/dev-image.sh tool_images).
 function digest_pinned_filter() {
-  local line file
+  local line file listed=''
+  [ ! -f config/tool-images.local.txt ] \
+    || listed="$(sed 's/#.*//' config/tool-images.local.txt | awk -F'\t' 'NF >= 3 { print $2 }')"
   while IFS= read -r line; do
     file="${line%%:*}"
     [[ "${file}" == */Containerfile ]] && [ -s "$(dirname "${file}")/image.ref" ] && continue
+    grep -qxF -- "${file}" <<< "${listed}" && [ -s "${file}.image.ref" ] && continue
     printf '%s\n' "${line}"
   done
 }
