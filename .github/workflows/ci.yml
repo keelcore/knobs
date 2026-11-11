@@ -37,6 +37,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
+      attestations: write
 
   # ---------------------------------------------------------------------------
   # PR Policy — required gate; runs before build and test jobs.

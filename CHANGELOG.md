@@ -40,6 +40,9 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
   conformance harness's error object (`keywords`). Draft 4, 6 and 7 schemas fail with `schema_invalid`: knobs can
   check every keyword of 2019-09 and 2020-12 only (#12).
 
+- `dev-image.yml` matches `.standards`' copy: its merge job, and the `dev-image` job in `ci.yml` that calls it, grant
+  `attestations: write`, which `scripts/release/sign-image.sh` needs to put an image's SBOM and provenance in GitHub's
+  attestation store (keelcore/standards#33). Without it the store refused them (HTTP 403) and the dev-image job failed.
 - `.standards` refreshed from v0.11.0 to v0.11.1: the Claude adapter links every governance document
   (keelcore/standards#28); `DIST_OWNER` reaches `set-dist-permissions` in the dev image again (keelcore/standards#31);
   every tool-image target starts the container system (keelcore/standards#32); `lint-workflows` fails when one workflow
