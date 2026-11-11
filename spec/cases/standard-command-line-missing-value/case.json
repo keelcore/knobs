@@ -1,0 +1,23 @@
+{
+  "description": "A --knob with no value on the command line fails.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--standard",
+    "--env",
+    "XDG_CONFIG_HOME=.",
+    "--env",
+    "APPDATA=.",
+    "--arg",
+    "--knob"
+  ],
+  "command": "resolve",
+  "expect_error": {
+    "error": {
+      "code": "invalid_argument",
+      "layer": "cli"
+    }
+  }
+}

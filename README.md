@@ -76,7 +76,7 @@ if err != nil {
 if err := engine.Attach(httpd.Knobs, store.Knobs); err != nil { // each module brings its own knobs
     return err
 }
-if err := engine.AddStandard(knobs.Standard{Knobs: flagValues}); err != nil { // knobs reads the environment itself
+if err := engine.AddStandard(knobs.Standard{Args: os.Args[1:]}); err != nil { // --knob arguments; env read by knobs
     return err
 }
 config, err := engine.Resolve() // every layer validated; errors name the layer and key

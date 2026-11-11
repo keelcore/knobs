@@ -89,6 +89,10 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 
 ### Added
 
+- `Standard.Args`, the program's command line, and `KnobArgs`: `--knob KEY=VALUE` and `--knob=KEY=VALUE` are the cli
+  layer, every other argument (and all from `--` on) is the program's, and a `--knob` with no value fails with
+  `invalid_argument`. A program passes `knobs.Standard{Args: os.Args[1:]}`, its whole contract with knobs besides
+  its name; `Standard.Knobs` still adds KEY=VALUE pairs. The harness takes `--arg`, and two cases cover it (#14).
 - The file-name knob `<app>.knobs.file_name` (`--knob`, else `<APP>_KNOBS_FILE_NAME`; default `config.yaml`): the
   global and user files' name at their default locations (`/etc/<app>/<name>`, `$XDG_CONFIG_HOME/<app>/<name>`; the
   Windows equivalents), resolved before any file loads. A full-path knob outranks it; a name that is a path fails

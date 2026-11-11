@@ -90,7 +90,10 @@ Lowest to highest precedence:
   at its default location is skipped; a file named explicitly that is missing fails with `file_not_found`.
   A module's own files are optional: missing, they are skipped. An `integer` property accepts a YAML number with no
   fractional part; a `number` property accepts any YAML number.
-- **The standard files** (`AddStandard`): a program gives knobs its application name and its command-line knobs;
+- **The command line** (`AddStandard`, `KnobArgs`): a program gives knobs its application name and its command line.
+  `--knob KEY=VALUE` and `--knob=KEY=VALUE` are the `cli` layer, in order; every other argument, and everything from
+  `--` on, is the program's. A `--knob` with no value fails with `invalid_argument`.
+- **The standard files** (`AddStandard`): a program gives knobs its application name and its command line;
   knobs reads the process environment itself. Each file's path is the one given, else its path knob from the cli,
   else from env (`<app>.knobs.global_path`, `user_path`, `secrets_path`; `<APP>_KNOBS_GLOBAL_PATH`, ...), else its
   default location: the global file `/etc/<app>/<name>` (Windows: `%ProgramData%\<app>\<name>`), the user file
@@ -155,13 +158,14 @@ Each implementation builds `knobs-conform`:
 knobs-conform --app NAME --schema FILE... [--global FILE] [--user FILE] [--secrets FILE]
               [--module-global MODULE=FILE] [--module-user MODULE=FILE]
               [--code KEY=JSON]... [--env NAME=VALUE]... [--knob KEY=VALUE]... [--runtime KEY=VALUE]...
-              [--connection KEY=VALUE]... [--authorized] [--standard]
+              [--connection KEY=VALUE]... [--authorized] [--standard [--arg ARG]...]
               resolve | dump | print-schema
 ```
 
 The harness reads no ambient environment: `--env` is the whole environment. `--standard` resolves through the
 standard layers (`AddStandard`) instead of the layers the flags name one by one: `--global`, `--user` and `--secrets`
-are the given paths, `--env` the environment the paths and the env layer read, and `--code` does not combine with it.
+are the given paths, `--env` the environment the paths and the env layer read, each `--arg` one argument of the
+program's command line (`Standard.Args`), and `--code` does not combine with it.
 `--code` sets a code value; its value
 is JSON (`--code demo.http.port=9000`, `--code 'demo.http.host="::1"'`). It writes JSON to stdout and exits 0, or
 writes the error object and exits 2. `--module-global` and `--module-user` name a schema's own files by its module, or by

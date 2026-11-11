@@ -51,7 +51,7 @@ func main() {
         err = engine.Attach(httpd.Knobs, store.Knobs)
     }
     if err == nil {
-        err = engine.AddStandard(knobs.Standard{Knobs: knobFlags}) // knobs reads the environment itself
+        err = engine.AddStandard(knobs.Standard{Args: os.Args[1:]}) // the --knob arguments; knobs reads the environment itself
     }
     var config *knobs.Config
     if err == nil {
@@ -106,6 +106,9 @@ port, err := config.Int("http", "port")
 timeout, err := config.Duration("http", "read_timeout")
 key, err := config.Secret("http", "api_key") // key.Reveal() is the one deliberate read
 ```
+
+The typed accessors and `Bind` give the resolved value only. Which layer set it is for debugging and logging:
+`config.Get(key)` and `config.Values()` give each value's `Layer`, and secrets as `Redacted` through `Display`.
 
 Or bind a struct:
 

@@ -22,7 +22,7 @@ type invocation struct {
 	moduleGlobal, moduleUser map[string]string
 	code                     map[string]any
 	env                      map[string]string
-	knobs                    []string
+	knobs, args              []string
 	runtime                  map[string]string
 	connection               map[string]string
 	authorized, standard     bool
@@ -127,7 +127,7 @@ func build(inv *invocation) (*knobs.Engine, error) {
 			return nil, errors.New("--code does not combine with --standard")
 		}
 		return e, e.AddStandard(knobs.Standard{GlobalPath: inv.global, UserPath: inv.user, SecretsPath: inv.secrets,
-			Env: env, Knobs: inv.knobs, Runtime: inv.runtime})
+			Env: env, Args: inv.args, Knobs: inv.knobs, Runtime: inv.runtime})
 	}
 	layers := []knobs.Layer{
 		knobs.Code(inv.code),
@@ -197,6 +197,8 @@ func (inv *invocation) set(flag, v string) error {
 		inv.user = v
 	case "--secrets":
 		inv.secrets = v
+	case "--arg":
+		inv.args = append(inv.args, v)
 	case "--knob":
 		inv.knobs = append(inv.knobs, v)
 	case "--module-global":

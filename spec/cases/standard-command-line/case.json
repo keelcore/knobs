@@ -1,0 +1,65 @@
+{
+  "description": "AddStandard takes the program's command line: --knob KEY=VALUE and --knob=KEY=VALUE are the cli layer; every other argument, and all after --, is the program's.",
+  "args": [
+    "--app",
+    "demo",
+    "--schema",
+    "{schema}/http.json",
+    "--standard",
+    "--env",
+    "XDG_CONFIG_HOME=.",
+    "--env",
+    "APPDATA=.",
+    "--arg",
+    "serve",
+    "--arg",
+    "--knob",
+    "--arg",
+    "demo.http.port=9000",
+    "--arg",
+    "-v",
+    "--arg",
+    "--knob=demo.http.debug=true",
+    "--arg",
+    "--",
+    "--arg",
+    "--knob",
+    "--arg",
+    "demo.http.mode=lenient"
+  ],
+  "command": "resolve",
+  "expect": {
+    "values": {
+      "demo.http.port": {
+        "value": 9000,
+        "layer": "cli",
+        "secret": false
+      },
+      "demo.http.debug": {
+        "value": true,
+        "layer": "cli",
+        "secret": false
+      },
+      "demo.http.host": {
+        "value": "127.0.0.1",
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.read_timeout": {
+        "value": "5s",
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.mode": {
+        "value": "strict",
+        "layer": "schema",
+        "secret": false
+      },
+      "demo.http.ratio": {
+        "value": 0.5,
+        "layer": "schema",
+        "secret": false
+      }
+    }
+  }
+}

@@ -176,10 +176,12 @@ const defaultFileName = "config.yaml"
 // from the path knobs <app>.knobs.global_path, user_path and secrets_path (cli, then env), else the
 // default locations, where the global and user files take the name the knob <app>.knobs.file_name
 // gives (cli, then env), else config.yaml; a secrets file is read only when a path is given. Env is
-// the environment, the process's (os.LookupEnv) when nil.
+// the environment, the process's (os.LookupEnv) when nil. Args is the program's command line
+// (os.Args[1:]): its --knob arguments (KnobArgs) are the cli layer; Knobs adds KEY=VALUE pairs to them.
 type Standard struct {
 	GlobalPath, UserPath, SecretsPath string
 	Env                               func(string) (string, bool)
+	Args                              []string
 	Knobs                             []string
 	Runtime                           map[string]string
 }
@@ -187,7 +189,11 @@ type Standard struct {
 // AddStandard adds the standard layers in precedence order: code, schema, global, user, secrets,
 // env, cli and, when given, runtime.
 func (e *Engine) AddStandard(s Standard) error {
-	paths, knobs, err := e.pathKnobs(s.Knobs)
+	fromArgs, _, err := KnobArgs(s.Args)
+	if err != nil {
+		return err
+	}
+	paths, knobs, err := e.pathKnobs(append(fromArgs, s.Knobs...))
 	if err != nil {
 		return err
 	}
@@ -210,6 +216,33 @@ func (e *Engine) AddStandard(s Standard) error {
 		layers = append(layers, Runtime(s.Runtime))
 	}
 	return e.Add(layers...)
+}
+
+// KnobArgs takes the knobs out of a command line: "--knob KEY=VALUE" and "--knob=KEY=VALUE" each give
+// KEY=VALUE, in order. Every other argument, and everything from "--" on, is returned in rest, in order,
+// for the program's own flags. A --knob with no value fails.
+func KnobArgs(args []string) (knobs, rest []string, err error) {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "--":
+			return knobs, append(rest, args[i:]...), nil
+		case a == "--knob":
+			if i+1 == len(args) {
+				return nil, nil, newError(CodeInvalidArgument, LayerCLI, "", "--knob needs KEY=VALUE")
+			}
+			i++
+			knobs = append(knobs, args[i])
+		case strings.HasPrefix(a, "--knob="):
+			if a == "--knob=" {
+				return nil, nil, newError(CodeInvalidArgument, LayerCLI, "", "--knob needs KEY=VALUE")
+			}
+			knobs = append(knobs, strings.TrimPrefix(a, "--knob="))
+		default:
+			rest = append(rest, a)
+		}
+	}
+	return knobs, rest, nil
 }
 
 // pathKnobs splits the <app>.knobs.* arguments from the rest.

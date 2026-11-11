@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -263,6 +264,67 @@ func TestFileNameKnobRejectsAPath(t *testing.T) {
 	if !errors.As(err, &ke) || ke.Code != CodeInvalidArgument || ke.Layer != LayerEnv {
 		t.Fatalf("from env: got %v", err)
 	}
+}
+
+// KnobArgs takes "--knob KEY=VALUE" and "--knob=KEY=VALUE" out of a command line, in order, and leaves
+// every other argument, and everything after "--", to the program.
+func TestKnobArgs(t *testing.T) {
+	knobs, rest, err := KnobArgs([]string{"serve", "--knob", "demo.http.port=9000", "-v", "--knob=demo.http.debug=true",
+		"--", "--knob", "demo.http.host=x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(knobs, []string{"demo.http.port=9000", "demo.http.debug=true"}) {
+		t.Fatalf("knobs: %q", knobs)
+	}
+	if !reflect.DeepEqual(rest, []string{"serve", "-v", "--", "--knob", "demo.http.host=x"}) {
+		t.Fatalf("rest: %q", rest)
+	}
+	if knobs, rest, err := KnobArgs(nil); err != nil || knobs != nil || rest != nil {
+		t.Fatalf("no arguments: %q %q %v", knobs, rest, err)
+	}
+	for _, bad := range [][]string{{"--knob"}, {"--knob="}, {"x", "--knob"}} {
+		_, _, err := KnobArgs(bad)
+		var ke *Error
+		if !errors.As(err, &ke) || ke.Code != CodeInvalidArgument || ke.Layer != LayerCLI {
+			t.Fatalf("%q: got %v", bad, err)
+		}
+	}
+}
+
+// AddStandard takes the program's command line: its --knob arguments are the cli layer and the engine's
+// own knobs; Standard.Knobs adds to them.
+func TestAddStandardTakesTheCommandLine(t *testing.T) {
+	isolateUserFiles(t)
+	xdg := os.Getenv("XDG_CONFIG_HOME")
+	if err := os.MkdirAll(filepath.Join(xdg, "demo"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(xdg, "demo", "keel.yaml"), []byte("demo:\n  http:\n    host: 10.0.0.9\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	e := engine(t, httpSchema)
+	err := e.AddStandard(Standard{
+		Args:  []string{"serve", "--knob", "demo.http.port=9000", "--knob=demo.knobs.file_name=keel.yaml", "-v"},
+		Knobs: []string{"demo.http.debug=true"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := e.Resolve()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := c.Int("http", "port"); n != 9000 {
+		t.Fatalf("port from the command line: %d", n)
+	}
+	if b, _ := c.Bool("http", "debug"); !b {
+		t.Fatal("Standard.Knobs adds to the command line")
+	}
+	if s, _ := c.String("http", "host"); s != "10.0.0.9" {
+		t.Fatalf("the file name from the command line: %q", s)
+	}
+	wantCode(t, engine(t, httpSchema).AddStandard(Standard{Args: []string{"--knob"}}), CodeInvalidArgument)
 }
 
 func TestAddStandardRejectsAMalformedKnob(t *testing.T) {
