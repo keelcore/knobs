@@ -168,3 +168,9 @@ Security vulnerabilities are reported via [GitHub Security Advisories](https://g
 - Unit tests for parallel connections and for the memory 100, 1000 and 10000 live connections hold (bounded per
   connection, independent of the count); fuzz targets for text conversion, file layers and connection values.
 - `config/gosec-sites.local.txt`: the two reviewed G304 sites, each reading a config path the operator names.
+
+### Security
+
+- `.standards` refreshed from v0.11.2 to v0.11.3: the pinned markdownlint takes `minimatch` 11.0.3 through an npm
+  override, fixing [GHSA-g3hv-75wg-m249](https://osv.dev/GHSA-g3hv-75wg-m249), and its OSV exception is gone
+  (keelcore/standards#15); Kubescape 4.0.17. The dev image is rebuilt from it (`containers/dev/image.ref`).
